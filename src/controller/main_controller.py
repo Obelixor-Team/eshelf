@@ -1,5 +1,6 @@
 """Controller to coordinate between the UI and the backend services."""
 
+from pathlib import Path
 from typing import List
 
 from src.database.repository import BookRepository
@@ -31,6 +32,29 @@ class MainController:
     def scan_library(self) -> tuple[int, int]:
         """Scan the library for books and return (added, updated) counts."""
         return self.scanner.scan(self.library_dir)
+
+    def import_folder(self, folder_path: str) -> tuple[int, int]:
+        """Import books from a specific folder."""
+        return self.scanner.scan(folder_path)
+
+    def import_file(self, file_path: str) -> bool:
+        """Import a single book file."""
+        path = Path(file_path)
+        if path.suffix.lower() not in (".pdf", ".epub"):
+            return False
+
+        title = path.stem
+        author = "Unknown Author"
+        cover_path = self.extractor.extract(file_path)
+
+        book = Book(
+            path=str(path.absolute()),
+            title=title,
+            author=author,
+            cover_path=cover_path,
+        )
+        self.repository.add_book(book)
+        return True
 
     def cleanup_library(self) -> int:
         """Remove missing books and return count of removed books."""

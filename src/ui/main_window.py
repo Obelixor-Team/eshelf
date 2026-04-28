@@ -41,15 +41,42 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.header_bar = Adw.HeaderBar()
         self.content_box.append(self.header_bar)
 
-        # Scan button
+        # Burger menu button
+        self.menu_button = Gtk.MenuButton()
+        self.menu_button.set_icon_name("open-menu")
+
+        # Create the menu
+        self.menu = Gtk.Popover()
+        self.menu_button.set_popover(self.menu)
+
+        # Menu container
+        menu_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        menu_box.set_margin_top(6)
+        menu_box.set_margin_bottom(6)
+        menu_box.set_margin_start(6)
+        menu_box.set_margin_end(6)
+        self.menu.set_child(menu_box)
+
+        # Menu items
+        self.import_file_item = Gtk.Button(label="Import File")
+        self.import_file_item.connect("clicked", self.on_import_file_clicked)
+
+        self.import_folder_item = Gtk.Button(label="Import Folder")
+        self.import_folder_item.connect("clicked", self.on_import_folder_clicked)
+
+        self.cleanup_item = Gtk.Button(label="Cleanup Library")
+        self.cleanup_item.connect("clicked", self.on_cleanup_clicked)
+
+        menu_box.append(self.import_file_item)
+        menu_box.append(self.import_folder_item)
+        menu_box.append(self.cleanup_item)
+
+        self.header_bar.pack_start(self.menu_button)
+
+        # Scan button (still keeping it as a primary action)
         self.scan_button = Gtk.Button(label="Scan Library")
         self.scan_button.connect("clicked", self.on_scan_clicked)
         self.header_bar.pack_start(self.scan_button)
-
-        # Cleanup button
-        self.cleanup_button = Gtk.Button(label="Cleanup")
-        self.cleanup_button.connect("clicked", self.on_cleanup_clicked)
-        self.header_bar.pack_start(self.cleanup_button)
 
         # Scrollable area for the grid
         self.scrolled_window = Gtk.ScrolledWindow()
@@ -70,6 +97,60 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         if self.controller:
             books = self.controller.get_books()
             self.grid.update_books(books)
+
+    def on_import_file_clicked(self, item: Gtk.Button) -> None:
+        """Handle import file action."""
+        if not self.controller:
+            return
+
+        dialog = Gtk.FileDialog(title="Select Book File")
+
+        # Create a filter for PDF and EPUB files
+        filter_pdf = Gtk.FileFilter()
+        filter_pdf.set_name("Books")
+        filter_pdf.add_pattern("*.pdf")
+        filter_pdf.add_pattern("*.epub")
+
+        # Create a Gio.ListStore to hold the filter
+        from gi.repository import Gio
+
+        filters = Gio.ListStore()
+        filters.append(filter_pdf)
+
+        dialog.set_filters(filters)
+
+        def on_open_response(dialog, result):
+            try:
+                file = dialog.open_finish(result)
+                if file:
+                    path = file.get_path()
+                    success = self.controller.import_file(path)
+                    if success:
+                        self.refresh_grid()
+            except Exception as e:
+                print(f"Error importing file: {e}")
+
+        dialog.open(self, None, on_open_response)
+
+    def on_import_folder_clicked(self, item: Gtk.Button) -> None:
+        """Handle import folder action."""
+        if not self.controller:
+            return
+
+        dialog = Gtk.FileDialog(title="Select Books Folder")
+
+        def on_open_response(dialog, result):
+            try:
+                folder = dialog.select_folder_finish(result)
+                if folder:
+                    path = folder.get_path()
+                    added, updated = self.controller.import_folder(path)
+                    self.refresh_grid()
+                    print(f"Folder import complete: {added} added, {updated} updated.")
+            except Exception as e:
+                print(f"Error importing folder: {e}")
+
+        dialog.select_folder(self, None, on_open_response)
 
     def on_scan_clicked(self, button: Gtk.Button) -> None:
         """Handle the scan button click."""
