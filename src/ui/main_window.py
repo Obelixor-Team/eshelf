@@ -28,13 +28,13 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
         self.controller: Optional[MainController] = None
 
-        # Main layout
-        self.content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.set_content(self.content_box)
+        # Main layout using ToolbarView
+        self.toolbar_view = Adw.ToolbarView()
+        self.set_content(self.toolbar_view)
 
         # Header bar
         self.header_bar = Adw.HeaderBar()
-        self.content_box.append(self.header_bar)
+        self.toolbar_view.add_top_bar(self.header_bar)
 
         # Burger menu button
         self.menu_button = Gtk.MenuButton()
@@ -88,7 +88,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.scrolled_window.set_vexpand(True)
         self.scrolled_window.set_hexpand(True)
         self.scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.content_box.append(self.scrolled_window)
+        self.toolbar_view.set_content(self.scrolled_window)
 
         # The grid
         self.grid = ShelfGrid(self.on_book_selected)
@@ -173,7 +173,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
         import threading
 
-        def scan_worker():
+        def scan_worker() -> None:
             def progress_update(current: int, total: int) -> None:
                 GLib.idle_add(self.update_progress, current, total)
 
@@ -239,7 +239,9 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             box.append(row)
             return spin
 
-        books_per_line_spin = create_setting_row("Books per line:", "books_per_line")
+        books_per_line_spin: Gtk.SpinButton = create_setting_row(
+            "Books per line:", "books_per_line"
+        )
 
         # Zoom level setting
         zoom_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -251,7 +253,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             step_increment=0.1,
         )
 
-        zoom_spin = Gtk.SpinButton(adjustment=zoom_adjustment, digits=1)
+        zoom_spin: Gtk.SpinButton = Gtk.SpinButton(adjustment=zoom_adjustment, digits=1)
         zoom_row.append(zoom_label)
         zoom_row.append(zoom_spin)
         box.append(zoom_row)
@@ -262,10 +264,10 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         cache_entry = Gtk.Entry(text=config.get("cache_dir", ""))
         cache_entry.set_hexpand(True)
 
-        def on_browse_clicked(button):
+        def on_browse_clicked(button: Gtk.Button) -> None:
             folder_dialog = Gtk.FileDialog(title="Select Cache Directory")
 
-            def on_folder_response(dialog, result):
+            def on_folder_response(dialog: Any, result: Any) -> None:
                 try:
                     folder = dialog.select_folder_finish(result)
                     if folder:
@@ -283,7 +285,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         cache_row.append(browse_button)
         box.append(cache_row)
 
-        def on_response(dialog: Any, response_id: int) -> None:
+        def on_response(dialog: Gtk.Dialog, response_id: int) -> None:
             if response_id == Gtk.ResponseType.OK:
                 new_config = {
                     "books_per_line": int(books_per_line_spin.get_value()),

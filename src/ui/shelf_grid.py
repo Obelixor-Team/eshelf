@@ -18,38 +18,31 @@ class ShelfGrid(Gtk.Grid):  # type: ignore
     """A grid that displays a collection of BookWidgets."""
 
     def __init__(self, on_book_selected_callback: Callable[[Book], None]) -> None:
-        """Initialize the ShelfGrid.
-
-        Args:
-            on_book_selected_callback (callable): Callback for when a book is selected.
-        """
+        """Initialize the ShelfGrid."""
         super().__init__()
         self.on_book_selected = on_book_selected_callback
-        self.set_valign(Gtk.Align.START)
+        self.set_column_spacing(24)
+        self.set_row_spacing(24)
         self.set_halign(Gtk.Align.CENTER)
-        self.set_column_spacing(12)
-        self.set_row_spacing(12)
-        self.set_column_homogeneous(True)
+        self.set_valign(Gtk.Align.START)
+        self.set_margin_top(18)
+        self.set_margin_bottom(18)
+        self.set_margin_start(18)
+        self.set_margin_end(18)
 
     def update_books(self, books: list[Book]) -> None:
-        """Refresh the grid with a new list of books.
-
-        Args:
-            books (list[Book]): List of books to display.
-        """
+        """Refresh the grid with a new list of books."""
         # Remove existing children
         child = self.get_first_child()
         while child:
             self.remove(child)
             child = self.get_first_child()
 
-        # Get configuration for columns
+        # Get column count from config
         config = load_config()
-        cols = config.get("books_per_line", 10)
+        cols = config.get("books_per_line", 4)
 
-        # Add new book widgets in a grid layout
-        for index, book in enumerate(books):
-            row = index // cols
-            col = index % cols
+        # Explicit grid with dynamic columns
+        for i, book in enumerate(books):
             widget = BookWidget(book, self.on_book_selected)
-            self.attach(widget, col, row, 1, 1)
+            self.attach(widget, i % cols, i // cols, 1, 1)
