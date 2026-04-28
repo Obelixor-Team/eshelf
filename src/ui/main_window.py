@@ -184,8 +184,6 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                 )
                 GLib.idle_add(self.on_scan_finished, added, updated)
 
-
-
         thread = threading.Thread(target=scan_worker, daemon=True)
         thread.start()
 
@@ -242,15 +240,55 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             return spin
 
         books_per_line_spin = create_setting_row("Books per line:", "books_per_line")
-        cover_width_spin = create_setting_row("Cover width:", "cover_width")
-        cover_height_spin = create_setting_row("Cover height:", "cover_height")
+
+        # Zoom level setting
+        zoom_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        zoom_label = Gtk.Label(label="Cover zoom:", xalign=0)
+        zoom_adjustment = Gtk.Adjustment(
+            value=config.get("zoom_level", 1.0),
+            lower=0.5,
+            upper=3.0,
+            step_increment=0.1,
+        )
+
+        zoom_spin = Gtk.SpinButton(adjustment=zoom_adjustment, digits=1)
+        zoom_row.append(zoom_label)
+        zoom_row.append(zoom_spin)
+        box.append(zoom_row)
+
+        # Cache directory setting
+        cache_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        cache_label = Gtk.Label(label="Cache directory:", xalign=0)
+        cache_entry = Gtk.Entry(text=config.get("cache_dir", ""))
+        cache_entry.set_hexpand(True)
+
+        def on_browse_clicked(button):
+            folder_dialog = Gtk.FileDialog(title="Select Cache Directory")
+
+            def on_folder_response(dialog, result):
+                try:
+                    folder = dialog.select_folder_finish(result)
+                    if folder:
+                        cache_entry.set_text(folder.get_path())
+                except Exception as e:
+                    print(f"Error selecting folder: {e}")
+
+            folder_dialog.select_folder(dialog, on_folder_response)
+
+        browse_button = Gtk.Button(label="Browse")
+        browse_button.connect("clicked", on_browse_clicked)
+
+        cache_row.append(cache_label)
+        cache_row.append(cache_entry)
+        cache_row.append(browse_button)
+        box.append(cache_row)
 
         def on_response(dialog: Any, response_id: int) -> None:
             if response_id == Gtk.ResponseType.OK:
                 new_config = {
                     "books_per_line": int(books_per_line_spin.get_value()),
-                    "cover_width": int(cover_width_spin.get_value()),
-                    "cover_height": int(cover_height_spin.get_value()),
+                    "zoom_level": float(zoom_spin.get_value()),
+                    "cache_dir": cache_entry.get_text(),
                 }
                 save_config(new_config)
                 self.refresh_grid()

@@ -39,6 +39,10 @@ class BookWidget(Gtk.Box):  # type: ignore
 
         # Cover image
         image = Gtk.Picture()
+        config = load_config()
+        zoom = config.get("zoom_level", 1.0)
+        width = int(120 * zoom)
+        height = int(180 * zoom)
         image.set_size_request(width, height)
         image.set_halign(Gtk.Align.CENTER)
         image.set_valign(Gtk.Align.CENTER)

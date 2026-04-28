@@ -8,8 +8,8 @@ CONFIG_FILE = os.path.expanduser("~/.config/eshelf/config.json")
 
 DEFAULT_CONFIG = {
     "books_per_line": 10,
-    "cover_width": 120,
-    "cover_height": 180,
+    "zoom_level": 1.0,
+    "cache_dir": os.path.join(os.path.expanduser("~"), ".cache", "eshelf", "covers"),
 }
 
 
