@@ -6,6 +6,7 @@ dependencies = [
     "pdf2image",
     "pillow",
     "ebooklib",
+    "PyGObject",
 ]
 
 [tool.commitizen]
