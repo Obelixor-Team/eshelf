@@ -2,7 +2,11 @@
 name = "eshelf"
 version = "0.1.0"
 description = "A dedicated Linux shelf app for books"
-dependencies = []
+dependencies = [
+    "pdf2image",
+    "pillow",
+    "ebooklib",
+]
 
 [tool.commitizen]
 name = "cz_conventional_commits"
@@ -11,6 +15,7 @@ tag_format = "v{version}"
 version_files = [
     "pyproject.toml:version"
 ]
+changelog_file = "CHANGELOG.md"
 
 [tool.ruff]
 line-length = 88
