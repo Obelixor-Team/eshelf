@@ -3,6 +3,7 @@
 from typing import Any, Optional
 
 import gi
+from gi.repository import GLib
 
 from src.config import load_config, save_config
 
@@ -75,6 +76,12 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.scan_button = Gtk.Button(label="Scan Library")
         self.scan_button.connect("clicked", self.on_scan_clicked)
         self.header_bar.pack_start(self.scan_button)
+
+        # Progress bar
+        self.progress_bar = Gtk.ProgressBar()
+        self.progress_bar.set_visible(False)
+        self.progress_bar.set_valign(Gtk.Align.CENTER)
+        self.header_bar.pack_start(self.progress_bar)
 
         # Scrollable area for the grid
         self.scrolled_window = Gtk.ScrolledWindow()
@@ -156,10 +163,47 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
     def on_scan_clicked(self, button: Gtk.Button) -> None:
         """Handle the scan button click."""
-        if self.controller:
-            added, updated = self.controller.scan_library()
-            self.refresh_grid()
-            print(f"Scan complete: {added} added, {updated} updated.")
+        if not self.controller:
+            return
+
+        # UI state for scanning
+        self.scan_button.set_sensitive(False)
+        self.progress_bar.set_visible(True)
+        self.progress_bar.set_fraction(0.0)
+
+        import threading
+
+        def scan_worker():
+            def progress_update(current: int, total: int) -> None:
+                GLib.idle_add(self.update_progress, current, total)
+
+            controller = self.controller
+            if controller:
+                added, updated = controller.scan_library(
+                    progress_callback=progress_update
+                )
+                GLib.idle_add(self.on_scan_finished, added, updated)
+
+
+
+        thread = threading.Thread(target=scan_worker, daemon=True)
+        thread.start()
+
+    def update_progress(self, current: int, total: int) -> bool:
+        """Update progress bar fraction."""
+        fraction = current / total
+        self.progress_bar.set_fraction(fraction)
+        self.progress_bar.set_text(f"Scanning... {current}/{total}")
+        self.progress_bar.set_show_text(True)
+        return False
+
+    def on_scan_finished(self, added: int, updated: int) -> bool:
+        """Handle completion of the scan process."""
+        self.scan_button.set_sensitive(True)
+        self.progress_bar.set_visible(False)
+        self.refresh_grid()
+        print(f"Scan complete: {added} added, {updated} updated.")
+        return False
 
     def on_cleanup_clicked(self, button: Gtk.Button) -> None:
         """Handle the cleanup button click."""

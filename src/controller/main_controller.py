@@ -1,7 +1,7 @@
 """Controller to coordinate between the UI and the backend services."""
 
 from pathlib import Path
-from typing import List
+from typing import Callable, List, Optional
 
 from src.database.repository import BookRepository
 from src.models.book import Book
@@ -29,13 +29,19 @@ class MainController:
         """Retrieve all books from the repository."""
         return self.repository.get_all_books()
 
-    def scan_library(self) -> tuple[int, int]:
+    def scan_library(
+        self, progress_callback: Optional[Callable[[int, int], None]] = None
+    ) -> tuple[int, int]:
         """Scan the library for books and return (added, updated) counts."""
-        return self.scanner.scan(self.library_dir)
+        return self.scanner.scan(self.library_dir, progress_callback=progress_callback)
 
-    def import_folder(self, folder_path: str) -> tuple[int, int]:
+    def import_folder(
+        self,
+        folder_path: str,
+        progress_callback: Optional[Callable[[int, int], None]] = None,
+    ) -> tuple[int, int]:
         """Import books from a specific folder."""
-        return self.scanner.scan(folder_path)
+        return self.scanner.scan(folder_path, progress_callback=progress_callback)
 
     def import_file(self, file_path: str) -> bool:
         """Import a single book file."""

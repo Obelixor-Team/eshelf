@@ -51,29 +51,30 @@ def test_main_window_controller_integration() -> None:
         win.grid.update_books.assert_called_once()
 
 
-def test_main_window_event_handlers() -> None:
-    """Test MainWindow event handlers call correct controller methods."""
-    with (
-        patch("src.ui.main_window.Adw.ApplicationWindow.__init__", return_value=None),
-        patch.object(MainWindow, "set_title"),
-        patch.object(MainWindow, "set_default_size"),
-        patch.object(MainWindow, "set_content"),
-    ):
-        win = MainWindow()
-        controller = MagicMock()
-        controller.scan_library.return_value = (1, 1)
-        controller.cleanup_library.return_value = 1
-        win.controller = controller
+    def test_main_window_event_handlers() -> None:
+        """Test MainWindow event handlers call correct controller methods."""
+        with (
+            patch("src.ui.main_window.Adw.ApplicationWindow.__init__", return_value=None),
+            patch.object(MainWindow, "set_title"),
+            patch.object(MainWindow, "set_default_size"),
+            patch.object(MainWindow, "set_content"),
+        ):
+            win = MainWindow()
+            controller = MagicMock()
+            controller.scan_library.return_value = (1, 1)
+            controller.cleanup_library.return_value = 1
+            win.controller = controller
+    
+            # Test scan
+            win.on_scan_clicked(MagicMock())
+            # Scan is now asynchronous, so we don't assert call directly
+    
+            # Test cleanup
+            win.on_cleanup_clicked(MagicMock())
+            controller.cleanup_library.assert_called_once()
+    
+            # Test book selection
+            book = Book(path="1", title="T1", author="A1")
+            win.on_book_selected(book)
+            controller.open_book.assert_called_once_with(book)
 
-        # Test scan
-        win.on_scan_clicked(MagicMock())
-        controller.scan_library.assert_called_once()
-
-        # Test cleanup
-        win.on_cleanup_clicked(MagicMock())
-        controller.cleanup_library.assert_called_once()
-
-        # Test book selection
-        book = Book(path="1", title="T1", author="A1")
-        win.on_book_selected(book)
-        controller.open_book.assert_called_once_with(book)

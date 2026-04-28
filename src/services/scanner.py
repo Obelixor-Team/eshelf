@@ -1,7 +1,7 @@
 """Service for scanning directories for books and updating the library."""
 
 from pathlib import Path
-from typing import Tuple
+from typing import Callable, Optional, Tuple
 
 from src.database.repository import BookRepository
 from src.models.book import Book
@@ -21,11 +21,16 @@ class BookScanner:
         self.repository = repository
         self.extractor = extractor
 
-    def scan(self, directory: str) -> Tuple[int, int]:
+    def scan(
+        self,
+        directory: str,
+        progress_callback: Optional[Callable[[int, int], None]] = None,
+    ) -> Tuple[int, int]:
         """Scan a directory for books and update the repository.
 
         Args:
             directory (str): The directory path to scan.
+            progress_callback (callable, optional): Callback for progress updates.
 
         Returns:
             Tuple[int, int]: A tuple containing (added_count, updated_count).
@@ -37,33 +42,32 @@ class BookScanner:
         if not dir_path.is_dir():
             raise ValueError(f"Provided path is not a directory: {directory}")
 
+        # Find all supported files first to determine total count
+        all_files = [
+            f for f in dir_path.rglob("*") if f.suffix.lower() in (".pdf", ".epub")
+        ]
+        total_files = len(all_files)
+
         # Scan for supported files
-        for file in dir_path.rglob("*"):
-            if file.suffix.lower() in (".pdf", ".epub"):
-                file_path = str(file.absolute())
+        for index, file in enumerate(all_files, 1):
+            if progress_callback:
+                progress_callback(index, total_files)
 
-                # Basic metadata extraction (filename as title)
-                # In a real app, we'd use a library to get actual metadata from the file
-                title = file.stem
-                author = "Unknown Author"
+            file_path = str(file.absolute())
 
-                # Check if book already exists
-                existing_book = self.repository.get_book_by_path(file_path)
+            # Basic metadata extraction (filename as title)
+            # In a real app, we'd use a library to get actual metadata from the file
+            title = file.stem
+            author = "Unknown Author"
 
-                # Extract cover
-                cover_path = self.extractor.extract(file_path)
+            # Check if book already exists
+            existing_book = self.repository.get_book_by_path(file_path)
 
-                if existing_book:
-                    if existing_book.cover_path != cover_path:
-                        book = Book(
-                            path=file_path,
-                            title=title,
-                            author=author,
-                            cover_path=cover_path,
-                        )
-                        self.repository.add_book(book)
-                        updated += 1
-                else:
+            # Extract cover
+            cover_path = self.extractor.extract(file_path)
+
+            if existing_book:
+                if existing_book.cover_path != cover_path:
                     book = Book(
                         path=file_path,
                         title=title,
@@ -71,7 +75,16 @@ class BookScanner:
                         cover_path=cover_path,
                     )
                     self.repository.add_book(book)
-                    added += 1
+                    updated += 1
+            else:
+                book = Book(
+                    path=file_path,
+                    title=title,
+                    author=author,
+                    cover_path=cover_path,
+                )
+                self.repository.add_book(book)
+                added += 1
 
         return added, updated
 
