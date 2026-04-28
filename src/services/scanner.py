@@ -1,0 +1,95 @@
+"""Service for scanning directories for books and updating the library."""
+
+from pathlib import Path
+from typing import Tuple
+
+from src.database.repository import BookRepository
+from src.models.book import Book
+from src.services.extractor import CoverExtractor
+
+
+class BookScanner:
+    """Scans directories for PDF and EPUB files and updates the repository."""
+
+    def __init__(self, repository: BookRepository, extractor: CoverExtractor):
+        """Initialize the scanner.
+
+        Args:
+            repository (BookRepository): The repository to persist book metadata.
+            extractor (CoverExtractor): The extractor to generate cover images.
+        """
+        self.repository = repository
+        self.extractor = extractor
+
+    def scan(self, directory: str) -> Tuple[int, int]:
+        """Scan a directory for books and update the repository.
+
+        Args:
+            directory (str): The directory path to scan.
+
+        Returns:
+            Tuple[int, int]: A tuple containing (added_count, updated_count).
+        """
+        added = 0
+        updated = 0
+
+        dir_path = Path(directory)
+        if not dir_path.is_dir():
+            raise ValueError(f"Provided path is not a directory: {directory}")
+
+        # Scan for supported files
+        for file in dir_path.rglob("*"):
+            if file.suffix.lower() in (".pdf", ".epub"):
+                file_path = str(file.absolute())
+
+                # Basic metadata extraction (filename as title)
+                # In a real app, we'd use a library to get actual metadata from the file
+                title = file.stem
+                author = "Unknown Author"
+
+                # Check if book already exists
+                existing_book = self.repository.get_book_by_path(file_path)
+
+                # Extract cover
+                cover_path = self.extractor.extract(file_path)
+
+                if existing_book:
+                    if existing_book.cover_path != cover_path:
+                        book = Book(
+                            path=file_path,
+                            title=title,
+                            author=author,
+                            cover_path=cover_path,
+                        )
+                        self.repository.add_book(book)
+                        updated += 1
+                else:
+                    book = Book(
+                        path=file_path,
+                        title=title,
+                        author=author,
+                        cover_path=cover_path,
+                    )
+                    self.repository.add_book(book)
+                    added += 1
+
+        return added, updated
+
+    def cleanup_missing(self, directory: str) -> int:
+        """Remove books from the repository that no longer exist on disk.
+
+        Args:
+            directory (str): The directory path to verify against.
+
+        Returns:
+            int: Number of books removed.
+        """
+        removed = 0
+        all_books = self.repository.get_all_books()
+
+        for book in all_books:
+            if not Path(book.path).exists():
+                self.repository.remove_book(book.path)
+                removed += 1
+
+        return removed
