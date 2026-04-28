@@ -2,20 +2,17 @@
 
 from typing import Callable
 
-# noqa: E402
-import gi
+import gi  # noqa: E402
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-# noqa: E402
-from gi.repository import Adw, GdkPixbuf, Gtk
+from gi.repository import Adw, GdkPixbuf, Gtk  # noqa: E402
 
-# noqa: E402
-from src.models.book import Book
+from src.models.book import Book  # noqa: E402
 
 
-class BookWidget(Adw.Bin):
+class BookWidget(Adw.Bin):  # type: ignore
     """A widget that displays a book's cover and title."""
 
     def __init__(self, book: Book, on_click_callback: Callable[[Book], None]) -> None:

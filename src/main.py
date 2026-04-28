@@ -2,21 +2,17 @@
 
 import os
 import sys
+from typing import Any
 
-# noqa: E402
-import gi
+import gi  # noqa: E402
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-# noqa: E402
-from gi.repository import Adw
+from gi.repository import Adw  # noqa: E402
 
-# noqa: E402
-from src.controller.main_controller import MainController
-
-# noqa: E402
-from src.ui.main_window import MainWindow
+from src.controller.main_controller import MainController  # noqa: E402
+from src.ui.main_window import MainWindow  # noqa: E402
 
 
 def main() -> None:
@@ -38,7 +34,7 @@ def main() -> None:
     # Initialize UI
     app = Adw.Application(application_id="ai.opencode.eshelf")
 
-    def on_activate(app):
+    def on_activate(app: Any) -> None:
         win = MainWindow(application=app)
         win.set_controller(controller)
         win.present()

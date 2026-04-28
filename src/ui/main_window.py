@@ -4,22 +4,14 @@ from typing import Any, Optional
 
 import gi
 
-# noqa: E402
-gi.require_version("Gtk", "4.0")
-# noqa: E402
-gi.require_version("Adw", "1")
+gi.require_version("Gtk", "4.0")  # noqa: E402
+gi.require_version("Adw", "1")  # noqa: E402
 
-# noqa: E402
-from gi.repository import Adw, Gtk
+from gi.repository import Adw, Gtk  # noqa: E402
 
-# noqa: E402
-from src.controller.main_controller import MainController
-
-# noqa: E402
-from src.models.book import Book
-
-# noqa: E402
-from src.ui.shelf_grid import ShelfGrid
+from src.controller.main_controller import MainController  # noqa: E402
+from src.models.book import Book  # noqa: E402
+from src.ui.shelf_grid import ShelfGrid  # noqa: E402
 
 
 class MainWindow(Adw.ApplicationWindow):  # type: ignore
@@ -119,12 +111,13 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
         dialog.set_filters(filters)
 
-        def on_open_response(dialog, result):
+        def on_open_response(dialog: Any, result: Any) -> None:
             try:
                 file = dialog.open_finish(result)
-                if file:
+                controller = self.controller
+                if file and controller:
                     path = file.get_path()
-                    success = self.controller.import_file(path)
+                    success = controller.import_file(path)
                     if success:
                         self.refresh_grid()
             except Exception as e:
@@ -139,12 +132,13 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
         dialog = Gtk.FileDialog(title="Select Books Folder")
 
-        def on_open_response(dialog, result):
+        def on_open_response(dialog: Any, result: Any) -> None:
             try:
                 folder = dialog.select_folder_finish(result)
-                if folder:
+                controller = self.controller
+                if folder and controller:
                     path = folder.get_path()
-                    added, updated = self.controller.import_folder(path)
+                    added, updated = controller.import_folder(path)
                     self.refresh_grid()
                     print(f"Folder import complete: {added} added, {updated} updated.")
             except Exception as e:

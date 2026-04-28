@@ -2,23 +2,18 @@
 
 from typing import Callable
 
-# noqa: E402
-import gi
+import gi  # noqa: E402
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-# noqa: E402
-from gi.repository import Gtk
+from gi.repository import Gtk  # noqa: E402
 
-# noqa: E402
-from src.models.book import Book
-
-# noqa: E402
-from src.ui.book_widget import BookWidget
+from src.models.book import Book  # noqa: E402
+from src.ui.book_widget import BookWidget  # noqa: E402
 
 
-class ShelfGrid(Gtk.FlowBox):
+class ShelfGrid(Gtk.FlowBox):  # type: ignore
     """A grid that displays a collection of BookWidgets."""
 
     def __init__(self, on_book_selected_callback: Callable[[Book], None]) -> None:
