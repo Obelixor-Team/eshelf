@@ -9,11 +9,12 @@ gi.require_version("Adw", "1")
 
 from gi.repository import Gtk  # noqa: E402
 
+from src.config import load_config  # noqa: E402
 from src.models.book import Book  # noqa: E402
 from src.ui.book_widget import BookWidget  # noqa: E402
 
 
-class ShelfGrid(Gtk.FlowBox):  # type: ignore
+class ShelfGrid(Gtk.Grid):  # type: ignore
     """A grid that displays a collection of BookWidgets."""
 
     def __init__(self, on_book_selected_callback: Callable[[Book], None]) -> None:
@@ -26,10 +27,9 @@ class ShelfGrid(Gtk.FlowBox):  # type: ignore
         self.on_book_selected = on_book_selected_callback
         self.set_valign(Gtk.Align.START)
         self.set_halign(Gtk.Align.CENTER)
-        self.set_max_children_per_line(10)
-        self.set_selection_mode(Gtk.SelectionMode.NONE)
         self.set_column_spacing(12)
         self.set_row_spacing(12)
+        self.set_column_homogeneous(True)
 
     def update_books(self, books: list[Book]) -> None:
         """Refresh the grid with a new list of books.
@@ -43,7 +43,13 @@ class ShelfGrid(Gtk.FlowBox):  # type: ignore
             self.remove(child)
             child = self.get_first_child()
 
-        # Add new book widgets
-        for book in books:
+        # Get configuration for columns
+        config = load_config()
+        cols = config.get("books_per_line", 10)
+
+        # Add new book widgets in a grid layout
+        for index, book in enumerate(books):
+            row = index // cols
+            col = index % cols
             widget = BookWidget(book, self.on_book_selected)
-            self.append(widget)
+            self.attach(widget, col, row, 1, 1)

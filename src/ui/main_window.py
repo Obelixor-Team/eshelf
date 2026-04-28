@@ -4,6 +4,8 @@ from typing import Any, Optional
 
 import gi
 
+from src.config import load_config, save_config
+
 gi.require_version("Gtk", "4.0")  # noqa: E402
 gi.require_version("Adw", "1")  # noqa: E402
 
@@ -59,9 +61,13 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.cleanup_item = Gtk.Button(label="Cleanup Library")
         self.cleanup_item.connect("clicked", self.on_cleanup_clicked)
 
+        self.settings_item = Gtk.Button(label="Settings")
+        self.settings_item.connect("clicked", self.on_settings_clicked)
+
         menu_box.append(self.import_file_item)
         menu_box.append(self.import_folder_item)
         menu_box.append(self.cleanup_item)
+        menu_box.append(self.settings_item)
 
         self.header_bar.pack_start(self.menu_button)
 
@@ -73,6 +79,8 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         # Scrollable area for the grid
         self.scrolled_window = Gtk.ScrolledWindow()
         self.scrolled_window.set_vexpand(True)
+        self.scrolled_window.set_hexpand(True)
+        self.scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.content_box.append(self.scrolled_window)
 
         # The grid
@@ -159,6 +167,53 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             removed = self.controller.cleanup_library()
             self.refresh_grid()
             print(f"Cleanup complete: {removed} books removed.")
+
+    def on_settings_clicked(self, button: Gtk.Button) -> None:
+        """Handle the settings button click."""
+        config = load_config()
+
+        dialog = Gtk.Dialog(title="Settings", transient_for=self, modal=True)
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        dialog.add_button("Save", Gtk.ResponseType.OK)
+
+        content_area = dialog.get_content_area()
+        content_area.set_margin_top(12)
+        content_area.set_margin_bottom(12)
+        content_area.set_margin_start(12)
+        content_area.set_margin_end(12)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        content_area.append(box)
+
+        def create_setting_row(label_text: str, key: str) -> Gtk.SpinButton:
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            label = Gtk.Label(label=label_text, xalign=0)
+            adjustment = Gtk.Adjustment(
+                value=config.get(key, 0), lower=1, upper=1000, step_increment=1
+            )
+            spin = Gtk.SpinButton(adjustment=adjustment)
+            row.append(label)
+            row.append(spin)
+            box.append(row)
+            return spin
+
+        books_per_line_spin = create_setting_row("Books per line:", "books_per_line")
+        cover_width_spin = create_setting_row("Cover width:", "cover_width")
+        cover_height_spin = create_setting_row("Cover height:", "cover_height")
+
+        def on_response(dialog: Any, response_id: int) -> None:
+            if response_id == Gtk.ResponseType.OK:
+                new_config = {
+                    "books_per_line": int(books_per_line_spin.get_value()),
+                    "cover_width": int(cover_width_spin.get_value()),
+                    "cover_height": int(cover_height_spin.get_value()),
+                }
+                save_config(new_config)
+                self.refresh_grid()
+            dialog.destroy()
+
+        dialog.connect("response", on_response)
+        dialog.present()
 
     def on_book_selected(self, book: Book) -> None:
         """Handle book selection."""
