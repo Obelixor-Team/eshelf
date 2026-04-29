@@ -8,6 +8,7 @@ from typing import Callable, List, Optional
 from src.database.repository import BookRepository
 from src.models.book import Book
 from src.models.category import Category
+from src.services.book_service import BookService
 from src.services.exceptions import ExtractionError
 from src.services.extractor import CoverExtractor
 from src.services.metadata_extractor import MetadataExtractor
@@ -36,6 +37,7 @@ class MainController:
         """
         self.library_dir = library_dir
         self.repository = BookRepository(db_path)
+        self.book_service = BookService(self.repository)
         self.extractor = CoverExtractor(cache_dir)
         self.metadata_extractor = MetadataExtractor()
         self.scanner = BookScanner(
@@ -48,47 +50,35 @@ class MainController:
 
         If category_id is None, retrieve all books.
         """
-        if category_id is not None:
-            return self.repository.get_books_by_category(category_id)
-        return self.repository.get_all_books()
+        return self.book_service.get_books(category_id)
 
     def get_uncategorized_books(self) -> List[Book]:
         """Retrieve books that have no category assigned."""
-        return self.repository.get_books_by_category(None)
+        return self.book_service.get_uncategorized_books()
 
     def get_categories(self) -> List[Category]:
         """Retrieve all categories."""
-        return self.repository.get_all_categories()
+        return self.book_service.get_categories()
 
     def search_books(self, query: str) -> List[Book]:
         """Search for books by title or author."""
-        return self.repository.search_books(query)
+        return self.book_service.search_books(query)
 
     def sort_books(self, books: List[Book], sort_by: str) -> List[Book]:
         """Sort books based on the given option."""
-        if sort_by == "Title":
-            return sorted(books, key=lambda b: b.title.lower())
-        elif sort_by == "Author":
-            return sorted(books, key=lambda b: b.author.lower())
-        elif sort_by == "Recently Added":
-            return sorted(
-                books,
-                key=lambda b: b.created_at or b.path,  # Fallback for None
-                reverse=True,
-            )
-        return books
+        return self.book_service.sort_books(books, sort_by)
 
     def create_category(self, name: str) -> int:
         """Create a new category."""
-        return self.repository.create_category(name)
+        return self.book_service.create_category(name)
 
     def delete_category(self, category_id: int) -> None:
         """Delete a category."""
-        self.repository.delete_category(category_id)
+        self.book_service.delete_category(category_id)
 
     def move_book_to_category(self, book_path: str, category_id: Optional[int]) -> None:
         """Move a book to a specific category."""
-        self.repository.update_book_category(book_path, category_id)
+        self.book_service.move_book_to_category(book_path, category_id)
 
     def scan_library(
         self, progress_callback: Optional[Callable[[int, int], None]] = None
@@ -120,7 +110,7 @@ class MainController:
                 author=author,
                 cover_path=cover_path,
             )
-            self.repository.add_book(book)
+            self.book_service.add_book(book)
             return True
         except ExtractionError as e:
             error_msg = str(e)
@@ -136,7 +126,7 @@ class MainController:
 
     def update_book_metadata(self, book_path: str, title: str, author: str) -> None:
         """Update the metadata for a book."""
-        self.repository.update_book_metadata(book_path, title, author)
+        self.book_service.update_book_metadata(book_path, title, author)
 
     def open_book(self, book: Book) -> None:
         """Open a book using the system's default application."""

@@ -34,9 +34,9 @@ def controller_env() -> Generator[tuple[MainController, str], None, None]:
 def test_controller_get_books(controller_env: tuple[MainController, str]) -> None:
     """Test retrieving books via controller."""
     controller, _ = controller_env
-    mock_repo = MagicMock()
-    mock_repo.get_all_books.return_value = [Book(path="1", title="T1", author="A1")]
-    controller.repository = mock_repo
+    mock_service = MagicMock()
+    mock_service.get_books.return_value = [Book(path="1", title="T1", author="A1")]
+    controller.book_service = mock_service
 
     books = controller.get_books()
     assert len(books) == 1
@@ -98,10 +98,10 @@ def test_controller_import_file_success(
 ) -> None:
     """Test importing a valid book file."""
     controller, _ = controller_env
-    mock_repo = MagicMock()
+    mock_service = MagicMock()
     mock_extractor = MagicMock()
     mock_extractor.extract.return_value = "/cache/cover.jpg"
-    controller.repository = mock_repo
+    controller.book_service = mock_service
     controller.extractor = mock_extractor
 
     # Mock metadata extractor
@@ -110,8 +110,8 @@ def test_controller_import_file_success(
 
     success = controller.import_file("/path/to/book.pdf")
     assert success is True
-    mock_repo.add_book.assert_called_once()
-    args = mock_repo.add_book.call_args[0][0]
+    mock_service.add_book.assert_called_once()
+    args = mock_service.add_book.call_args[0][0]
     assert args.title == "Book Title"
     assert args.author == "Book Author"
     assert args.cover_path == "/cache/cover.jpg"
@@ -129,11 +129,11 @@ def test_controller_import_file_invalid(
 def test_controller_update_metadata(controller_env: tuple[MainController, str]) -> None:
     """Test updating book metadata via controller."""
     controller, _ = controller_env
-    mock_repo = MagicMock()
-    controller.repository = mock_repo
+    mock_service = MagicMock()
+    controller.book_service = mock_service
 
     controller.update_book_metadata("/path/to/book.pdf", "New Title", "New Author")
-    mock_repo.update_book_metadata.assert_called_once_with(
+    mock_service.update_book_metadata.assert_called_once_with(
         "/path/to/book.pdf", "New Title", "New Author"
     )
 
@@ -160,14 +160,14 @@ def test_controller_category_filtering(
 ) -> None:
     """Test retrieving books by category and uncategorized."""
     controller, _ = controller_env
-    mock_repo = MagicMock()
-    controller.repository = mock_repo
+    mock_service = MagicMock()
+    controller.book_service = mock_service
 
     controller.get_books(category_id=123)
-    mock_repo.get_books_by_category.assert_called_with(123)
+    mock_service.get_books.assert_called_with(123)
 
     controller.get_uncategorized_books()
-    mock_repo.get_books_by_category.assert_called_with(None)
+    mock_service.get_uncategorized_books.assert_called_once()
 
 
 def test_controller_import_file_failure(
