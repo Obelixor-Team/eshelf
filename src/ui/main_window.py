@@ -290,7 +290,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
             label = Gtk.Label(label=label_text, xalign=0)
             adjustment = Gtk.Adjustment(
-                value=config.get(key, 0), lower=1, upper=1000, step_increment=1
+                value=config.get(key, 0), lower=1, upper=10, step_increment=1
             )
             spin = Gtk.SpinButton(adjustment=adjustment)
             row.append(label)

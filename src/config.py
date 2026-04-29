@@ -7,7 +7,7 @@ from typing import Any
 CONFIG_FILE = os.path.expanduser("~/.config/eshelf/config.json")
 
 DEFAULT_CONFIG = {
-    "books_per_line": 10,
+    "books_per_line": 6,
     "zoom_level": 1.0,
     "cache_dir": os.path.join(os.path.expanduser("~"), ".cache", "eshelf", "covers"),
 }
