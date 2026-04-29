@@ -7,6 +7,8 @@ from typing import Tuple
 import fitz  # PyMuPDF
 from ebooklib import epub
 
+from src.services.exceptions import ExtractionError
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,8 +48,7 @@ class MetadataExtractor:
 
                 return final_title, final_author
         except Exception as e:
-            logger.exception(f"Error extracting PDF metadata from {path}: {e}")
-            return path.stem, "Unknown Author"
+            raise ExtractionError(f"Error extracting PDF metadata from {path}") from e
 
     def _extract_epub(self, path: Path) -> Tuple[str, str]:
         """Extract metadata from an EPUB file."""
@@ -62,5 +63,4 @@ class MetadataExtractor:
 
             return final_title, final_author
         except Exception as e:
-            logger.exception(f"Error extracting EPUB metadata from {path}: {e}")
-            return path.stem, "Unknown Author"
+            raise ExtractionError(f"Error extracting EPUB metadata from {path}") from e

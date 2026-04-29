@@ -8,6 +8,7 @@ from typing import Callable, List, Optional
 from src.database.repository import BookRepository
 from src.models.book import Book
 from src.models.category import Category
+from src.services.exceptions import ExtractionError
 from src.services.extractor import CoverExtractor
 from src.services.metadata_extractor import MetadataExtractor
 from src.services.scanner import BookScanner
@@ -37,7 +38,9 @@ class MainController:
         self.repository = BookRepository(db_path)
         self.extractor = CoverExtractor(cache_dir)
         self.metadata_extractor = MetadataExtractor()
-        self.scanner = BookScanner(self.repository, self.extractor)
+        self.scanner = BookScanner(
+            self.repository, self.extractor, self.metadata_extractor
+        )
         self.error_callback = error_callback
 
     def get_books(self, category_id: Optional[int] = None) -> List[Book]:
@@ -107,17 +110,25 @@ class MainController:
         if path.suffix.lower() not in (".pdf", ".epub"):
             return False
 
-        title, author = self.metadata_extractor.extract(file_path)
-        cover_path = self.extractor.extract(file_path)
+        try:
+            title, author = self.metadata_extractor.extract(file_path)
+            cover_path = self.extractor.extract(file_path)
 
-        book = Book(
-            path=str(path.absolute()),
-            title=title,
-            author=author,
-            cover_path=cover_path,
-        )
-        self.repository.add_book(book)
-        return True
+            book = Book(
+                path=str(path.absolute()),
+                title=title,
+                author=author,
+                cover_path=cover_path,
+            )
+            self.repository.add_book(book)
+            return True
+        except ExtractionError as e:
+            error_msg = str(e)
+            if self.error_callback:
+                self.error_callback(error_msg)
+            else:
+                self.logger.error(error_msg)
+            return False
 
     def cleanup_library(self) -> int:
         """Remove missing books and return count of removed books."""

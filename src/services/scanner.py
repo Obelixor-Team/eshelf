@@ -1,28 +1,38 @@
 """Service for scanning directories for books and updating the library."""
 
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Optional, Tuple
 
 from src.database.repository import BookRepository
 from src.models.book import Book
+from src.services.exceptions import ExtractionError
 from src.services.extractor import CoverExtractor
 from src.services.metadata_extractor import MetadataExtractor
+
+logger = logging.getLogger(__name__)
 
 
 class BookScanner:
     """Scans directories for PDF and EPUB files and updates the repository."""
 
-    def __init__(self, repository: BookRepository, extractor: CoverExtractor):
+    def __init__(
+        self,
+        repository: BookRepository,
+        extractor: CoverExtractor,
+        metadata_extractor: Optional[MetadataExtractor] = None,
+    ):
         """Initialize the scanner.
 
         Args:
             repository (BookRepository): The repository to persist book metadata.
             extractor (CoverExtractor): The extractor to generate cover images.
+            metadata_extractor (MetadataExtractor, optional): Metadata extractor.
         """
         self.repository = repository
         self.extractor = extractor
-        self.metadata_extractor = MetadataExtractor()
+        self.metadata_extractor = metadata_extractor or MetadataExtractor()
 
     def scan(
         self,
@@ -59,21 +69,25 @@ class BookScanner:
             file_path = str(file.absolute())
 
             # Extract metadata
-            title, author = self.metadata_extractor.extract(file_path)
+            try:
+                title, author = self.metadata_extractor.extract(file_path)
 
-            # Check if book already exists
-            existing_book = self.repository.get_book_by_path(file_path)
+                # Check if book already exists
+                existing_book = self.repository.get_book_by_path(file_path)
 
-            # Extract cover only if necessary
-            cover_path = None
-            if (
-                existing_book
-                and existing_book.cover_path
-                and Path(existing_book.cover_path).exists()
-            ):
-                cover_path = existing_book.cover_path
-            else:
-                cover_path = self.extractor.extract(file_path)
+                # Extract cover only if necessary
+                cover_path = None
+                if (
+                    existing_book
+                    and existing_book.cover_path
+                    and Path(existing_book.cover_path).exists()
+                ):
+                    cover_path = existing_book.cover_path
+                else:
+                    cover_path = self.extractor.extract(file_path)
+            except ExtractionError as e:
+                logger.error(f"Skipping book {file_path} due to extraction error: {e}")
+                continue
 
             if existing_book:
                 if (

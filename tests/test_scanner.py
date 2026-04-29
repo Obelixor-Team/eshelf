@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 from src.database.repository import BookRepository
 from src.models.book import Book
 from src.services.extractor import CoverExtractor
+from src.services.metadata_extractor import MetadataExtractor
 from src.services.scanner import BookScanner
 
 
@@ -28,7 +29,10 @@ def test_scanner_finds_books() -> None:
         mock_extractor = MagicMock(spec=CoverExtractor)
         mock_extractor.extract.return_value = "/tmp/cover.png"
 
-        scanner = BookScanner(mock_repo, mock_extractor)
+        mock_metadata_extractor = MagicMock(spec=MetadataExtractor)
+        mock_metadata_extractor.extract.return_value = ("Title", "Author")
+
+        scanner = BookScanner(mock_repo, mock_extractor, mock_metadata_extractor)
         added, updated = scanner.scan(tmpdir)
 
         assert added == 2
@@ -54,7 +58,10 @@ def test_scanner_updates_existing_books() -> None:
         mock_extractor = MagicMock(spec=CoverExtractor)
         mock_extractor.extract.return_value = "/new/cover.png"
 
-        scanner = BookScanner(mock_repo, mock_extractor)
+        mock_metadata_extractor = MagicMock(spec=MetadataExtractor)
+        mock_metadata_extractor.extract.return_value = ("test_book", "Unknown Author")
+
+        scanner = BookScanner(mock_repo, mock_extractor, mock_metadata_extractor)
         added, updated = scanner.scan(tmpdir)
 
         assert added == 0
