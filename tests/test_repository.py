@@ -169,3 +169,96 @@ def test_repository_update_metadata() -> None:
         assert retrieved is not None
         assert retrieved.title == "New Title"
         assert retrieved.author == "New Author"
+
+
+def test_repository_pagination() -> None:
+    """Test retrieving books with pagination."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = os.path.join(tmpdir, "test.db")
+        repo = BookRepository(db_path)
+
+        for i in range(10):
+            repo.add_book(Book(path=str(i), title=f"T{i}", author=f"A{i}"))
+
+        # Page 1
+        page1 = list(repo.get_all_books(limit=3, offset=0))
+        assert len(page1) == 3
+        assert page1[0].path == "0"
+
+        # Page 2
+        page2 = list(repo.get_all_books(limit=3, offset=3))
+        assert len(page2) == 3
+        assert page2[0].path == "3"
+
+        # Offset beyond range
+        page_empty = list(repo.get_all_books(limit=3, offset=12))
+        assert len(page_empty) == 0
+
+
+def test_repository_search() -> None:
+    """Test searching for books by title or author."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = os.path.join(tmpdir, "test.db")
+        repo = BookRepository(db_path)
+
+        repo.add_book(
+            Book(path="1", title="Python Programming", author="Guido van Rossum")
+        )
+        repo.add_book(Book(path="2", title="Clean Code", author="Robert C. Martin"))
+        repo.add_book(
+            Book(path="3", title="The Pragmatic Programmer", author="Andrew Hunt")
+        )
+
+        # Search by title
+        results = repo.search_books("Python")
+        assert len(results) == 1
+        assert results[0].path == "1"
+
+        # Search by author
+        results = repo.search_books("Martin")
+        assert len(results) == 1
+        assert results[0].path == "2"
+
+        # Search case-insensitive
+        results = repo.search_books("CLEAN")
+        assert len(results) == 1
+        assert results[0].path == "2"
+
+        # No results
+        results = repo.search_books("Nonexistent")
+        assert len(results) == 0
+
+
+def test_repository_non_existent_book() -> None:
+    """Test operations on non-existent books."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = os.path.join(tmpdir, "test.db")
+        repo = BookRepository(db_path)
+
+        # Removing non-existent book should not crash
+        repo.remove_book("/non/existent")
+
+        # Updating non-existent book should not crash
+        repo.update_book_category("/non/existent", 1)
+        repo.update_book_metadata("/non/existent", "T", "A")
+
+        assert repo.get_book_by_path("/non/existent") is None
+
+
+def test_repository_category_collision() -> None:
+    """Test that creating a category with an existing name raises an error."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = os.path.join(tmpdir, "test.db")
+        repo = BookRepository(db_path)
+
+        repo.create_category("Unique")
+
+        # Since the DB has UNIQUE constraint, this should raise sqlite3.IntegrityError
+        # The repository doesn't catch it, so it should bubble up
+        import sqlite3
+
+        try:
+            repo.create_category("Unique")
+            assert False, "Should have raised IntegrityError"
+        except sqlite3.IntegrityError:
+            pass

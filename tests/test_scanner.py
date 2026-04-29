@@ -94,3 +94,123 @@ def test_scanner_cleanup_missing() -> None:
 
         assert removed == 1
         mock_repo.remove_book.assert_called_once_with(str(book2_path.absolute()))
+
+
+def test_scanner_invalid_directory() -> None:
+    """Test that scan raises ValueError if directory doesn't exist."""
+    mock_repo = MagicMock(spec=BookRepository)
+    mock_extractor = MagicMock(spec=CoverExtractor)
+    scanner = BookScanner(mock_repo, mock_extractor)
+
+    import pytest
+
+    with pytest.raises(ValueError, match="Provided path is not a directory"):
+        scanner.scan("/non/existent/directory/path")
+
+
+def test_scanner_extraction_error() -> None:
+    """Test that scanner continues when an ExtractionError occurs."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        book1 = Path(tmpdir) / "ok.pdf"
+        book1.touch()
+        book2 = Path(tmpdir) / "error.pdf"
+        book2.touch()
+
+        mock_repo = MagicMock(spec=BookRepository)
+        mock_repo.get_book_by_path.return_value = None
+
+        mock_extractor = MagicMock(spec=CoverExtractor)
+        mock_extractor.extract.return_value = "/tmp/cover.png"
+
+        mock_metadata_extractor = MagicMock(spec=MetadataExtractor)
+        from src.services.exceptions import ExtractionError
+
+        def metadata_side_effect(path: str) -> tuple[str, str]:
+            if "error.pdf" in path:
+                raise ExtractionError("Failed to extract")
+            return ("Title", "Author")
+
+        mock_metadata_extractor.extract.side_effect = metadata_side_effect
+
+        scanner = BookScanner(mock_repo, mock_extractor, mock_metadata_extractor)
+        added, updated = scanner.scan(tmpdir)
+
+        assert added == 1
+        assert updated == 0
+        assert mock_repo.add_book.call_count == 1
+
+
+def test_scanner_recursive_scan() -> None:
+    """Test that the scanner finds books in subdirectories."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Root book
+        (Path(tmpdir) / "root.pdf").touch()
+        # Subdir book
+        subdir = Path(tmpdir) / "subdir"
+        subdir.mkdir()
+        (subdir / "sub.pdf").touch()
+
+        mock_repo = MagicMock(spec=BookRepository)
+        mock_repo.get_book_by_path.return_value = None
+        mock_extractor = MagicMock(spec=CoverExtractor)
+        mock_metadata_extractor = MagicMock(spec=MetadataExtractor)
+        mock_metadata_extractor.extract.return_value = ("Title", "Author")
+
+        scanner = BookScanner(mock_repo, mock_extractor, mock_metadata_extractor)
+        added, updated = scanner.scan(tmpdir)
+
+        assert added == 2
+        assert mock_repo.add_book.call_count == 2
+
+
+def test_scanner_progress_callback() -> None:
+    """Test that the progress callback is called."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        for i in range(3):
+            (Path(tmpdir) / f"book{i}.pdf").touch()
+
+        mock_repo = MagicMock(spec=BookRepository)
+        mock_repo.get_book_by_path.return_value = None
+        mock_extractor = MagicMock(spec=CoverExtractor)
+        mock_metadata_extractor = MagicMock(spec=MetadataExtractor)
+        mock_metadata_extractor.extract.return_value = ("Title", "Author")
+
+        progress_calls = []
+
+        def callback(current: int, total: int) -> None:
+            progress_calls.append((current, total))
+
+        scanner = BookScanner(mock_repo, mock_extractor, mock_metadata_extractor)
+        scanner.scan(tmpdir, progress_callback=callback)
+
+        assert len(progress_calls) == 3
+        assert progress_calls[0] == (1, 3)
+        assert progress_calls[2] == (3, 3)
+
+
+def test_scanner_updates_on_metadata_change() -> None:
+    """Test that the scanner updates books when title or author changes."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        book_pdf = Path(tmpdir) / "test_book.pdf"
+        book_pdf.touch()
+
+        mock_repo = MagicMock(spec=BookRepository)
+        mock_repo.get_book_by_path.return_value = Book(
+            path=str(book_pdf.absolute()),
+            title="Old Title",
+            author="Old Author",
+            cover_path="/tmp/cover.png",
+        )
+
+        mock_extractor = MagicMock(spec=CoverExtractor)
+        mock_extractor.extract.return_value = "/tmp/cover.png"
+
+        mock_metadata_extractor = MagicMock(spec=MetadataExtractor)
+        mock_metadata_extractor.extract.return_value = ("New Title", "Old Author")
+
+        scanner = BookScanner(mock_repo, mock_extractor, mock_metadata_extractor)
+        added, updated = scanner.scan(tmpdir)
+
+        assert added == 0
+        assert updated == 1
+        mock_repo.add_book.assert_called_once()
