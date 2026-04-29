@@ -90,7 +90,7 @@ class Sidebar(Adw.Bin):  # type: ignore
         for cat in categories:
             row = self._create_row(cat.name, str(cat.id))
             # Add a delete button to each category row
-            del_btn = Gtk.Button(icon_name="user-trash-symbolic")
+            del_btn = Gtk.Button(icon_name="edit-delete-symbolic")
             del_btn.set_valign(Gtk.Align.CENTER)
             del_btn.connect("clicked", self.on_delete_clicked, cat.id)
 
@@ -110,6 +110,7 @@ class Sidebar(Adw.Bin):  # type: ignore
         box.set_margin_bottom(6)
 
         label = Gtk.Label(label=label_text, xalign=0)
+        label.set_hexpand(True)
         box.append(label)
 
         row.set_child(box)

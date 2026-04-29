@@ -154,6 +154,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         if self.controller:
             self.controller.delete_category(category_id)
             self.refresh_sidebar()
+            self.refresh_grid(None, True)
 
     def on_sidebar_toggle_clicked(self, button: Gtk.Button) -> None:
         """Toggle sidebar visibility."""
