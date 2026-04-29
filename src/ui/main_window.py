@@ -15,6 +15,7 @@ from gi.repository import Adw, Gtk  # noqa: E402
 from src.controller.main_controller import MainController  # noqa: E402
 from src.models.book import Book  # noqa: E402
 from src.ui.shelf_grid import ShelfGrid  # noqa: E402
+from src.ui.sidebar import Sidebar  # noqa: E402
 
 
 class MainWindow(Adw.ApplicationWindow):  # type: ignore
@@ -24,17 +25,34 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         """Initialize the main window."""
         super().__init__(**kwargs)
         self.set_title("eShelf")
-        self.set_default_size(800, 600)
+        self.set_default_size(1000, 600)
 
         self.controller: Optional[MainController] = None
 
-        # Main layout using ToolbarView
+        # Use NavigationSplitView for sidebar and content
+        self.split_view = Adw.NavigationSplitView()
+        self.set_content(self.split_view)
+
+        # Sidebar setup
+        self.sidebar = Sidebar(
+            on_category_selected=self.on_category_selected,
+            on_category_created=self.on_category_created,
+            on_category_deleted=self.on_category_deleted,
+        )
+        self.sidebar_page = Adw.NavigationPage.new(self.sidebar, "Bookshelves")
+        self.split_view.set_sidebar(self.sidebar_page)
+
+        # Content setup
         self.toolbar_view = Adw.ToolbarView()
-        self.set_content(self.toolbar_view)
 
         # Header bar
         self.header_bar = Adw.HeaderBar()
         self.toolbar_view.add_top_bar(self.header_bar)
+
+        # Sidebar toggle button
+        self.sidebar_toggle = Gtk.Button(icon_name="sidebar-show-symbolic")
+        self.sidebar_toggle.connect("clicked", self.on_sidebar_toggle_clicked)
+        self.header_bar.pack_start(self.sidebar_toggle)
 
         # Burger menu button
         self.menu_button = Gtk.MenuButton()
@@ -72,7 +90,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
         self.header_bar.pack_start(self.menu_button)
 
-        # Scan button (still keeping it as a primary action)
+        # Scan button
         self.scan_button = Gtk.Button(label="Scan Library")
         self.scan_button.connect("clicked", self.on_scan_clicked)
         self.header_bar.pack_start(self.scan_button)
@@ -91,19 +109,62 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.toolbar_view.set_content(self.scrolled_window)
 
         # The grid
-        self.grid = ShelfGrid(self.on_book_selected)
+        self.grid = ShelfGrid(self.on_book_selected, self.on_book_right_clicked)
         self.scrolled_window.set_child(self.grid)
+
+        self.content_page = Adw.NavigationPage.new(self.toolbar_view, "Books")
+        self.split_view.set_content(self.content_page)
 
     def set_controller(self, controller: MainController) -> None:
         """Inject the controller and refresh the view."""
         self.controller = controller
         self.refresh_grid()
+        self.refresh_sidebar()
 
-    def refresh_grid(self) -> None:
+    def refresh_sidebar(self) -> None:
+        """Update the sidebar with current categories."""
+        if self.controller:
+            categories = self.controller.get_categories()
+            self.sidebar.update_categories(categories)
+
+    def refresh_grid(
+        self, category_id: Optional[int] = None, all_books: bool = True
+    ) -> None:
         """Update the grid with books from the controller."""
         if self.controller:
-            books = self.controller.get_books()
+            if all_books:
+                books = self.controller.get_books(None)
+            elif category_id is None:
+                books = self.controller.get_uncategorized_books()
+            else:
+                books = self.controller.get_books(category_id)
             self.grid.update_books(books)
+
+    def on_category_selected(self, category_id: Optional[int], all_books: bool) -> None:
+        """Handle category selection from sidebar."""
+        self.refresh_grid(category_id, all_books)
+
+    def on_category_created(self, name: str) -> None:
+        """Handle new category creation."""
+        if self.controller:
+            self.controller.create_category(name)
+            self.refresh_sidebar()
+
+    def on_category_deleted(self, category_id: int) -> None:
+        """Handle category deletion."""
+        if self.controller:
+            self.controller.delete_category(category_id)
+            self.refresh_sidebar()
+
+    def on_sidebar_toggle_clicked(self, button: Gtk.Button) -> None:
+        """Toggle sidebar visibility."""
+        # Use get_collapsed() and set_collapsed() for Adw.NavigationSplitView
+        if self.split_view.get_collapsed():
+            self.split_view.set_collapsed(False)
+            self.sidebar_toggle.set_icon_name("sidebar-hide-symbolic")
+        else:
+            self.split_view.set_collapsed(True)
+            self.sidebar_toggle.set_icon_name("sidebar-show-symbolic")
 
     def on_import_file_clicked(self, item: Gtk.Button) -> None:
         """Handle import file action."""
@@ -303,3 +364,39 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         """Handle book selection."""
         if self.controller:
             self.controller.open_book(book)
+
+    def on_book_right_clicked(self, widget: Gtk.Widget, book: Book) -> None:
+        """Handle book right-click to move to category."""
+        if not self.controller:
+            return
+
+        # Create a popover for category selection
+        popover = Gtk.Popover()
+        popover.set_parent(widget)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        box.set_margin_top(6)
+        box.set_margin_bottom(6)
+        box.set_margin_start(6)
+        box.set_margin_end(6)
+        popover.set_child(box)
+
+        # "Uncategorized" option
+        uncat_btn = Gtk.Button(label="Move to Uncategorized")
+        uncat_btn.connect("clicked", lambda _: self.move_book(book, None))
+        box.append(uncat_btn)
+
+        # Category options
+        categories = self.controller.get_categories()
+        for cat in categories:
+            btn = Gtk.Button(label=f"Move to {cat.name}")
+            btn.connect("clicked", lambda _, c_id=cat.id: self.move_book(book, c_id))
+            box.append(btn)
+
+        popover.popup()
+
+    def move_book(self, book: Book, category_id: Optional[int]) -> None:
+        """Move a book to a category and refresh view."""
+        if self.controller:
+            self.controller.move_book_to_category(book.path, category_id)
+            self.refresh_grid()

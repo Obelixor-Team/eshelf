@@ -1,6 +1,6 @@
 """UI component for the book grid."""
 
-from typing import Callable
+from typing import Callable, Optional
 
 import gi  # noqa: E402
 
@@ -17,10 +17,17 @@ from src.ui.book_widget import BookWidget  # noqa: E402
 class ShelfGrid(Gtk.Grid):  # type: ignore
     """A grid that displays a collection of BookWidgets."""
 
-    def __init__(self, on_book_selected_callback: Callable[[Book], None]) -> None:
+    def __init__(
+        self,
+        on_book_selected_callback: Callable[[Book], None],
+        on_book_right_clicked_callback: Optional[
+            Callable[[Gtk.Widget, Book], None]
+        ] = None,
+    ) -> None:
         """Initialize the ShelfGrid."""
         super().__init__()
         self.on_book_selected = on_book_selected_callback
+        self.on_book_right_clicked = on_book_right_clicked_callback
         self.set_column_spacing(24)
         self.set_row_spacing(24)
         self.set_halign(Gtk.Align.CENTER)
@@ -44,5 +51,5 @@ class ShelfGrid(Gtk.Grid):  # type: ignore
 
         # Explicit grid with dynamic columns
         for i, book in enumerate(books):
-            widget = BookWidget(book, self.on_book_selected)
+            widget = BookWidget(book, self.on_book_selected, self.on_book_right_clicked)
             self.attach(widget, i % cols, i // cols, 1, 1)
