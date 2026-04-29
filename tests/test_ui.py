@@ -178,3 +178,23 @@ def test_main_window_settings_clicked() -> None:
         with patch("src.ui.main_window.Adw.Dialog") as mock_dialog:
             win.on_settings_clicked(MagicMock())
             mock_dialog.assert_called_once()
+
+
+def test_main_window_edit_metadata_clicked() -> None:
+    """Test that editing metadata creates a dialog and updates controller."""
+    with (
+        patch("src.ui.main_window.Adw.ApplicationWindow.__init__", return_value=None),
+        patch.object(MainWindow, "set_title"),
+        patch.object(MainWindow, "set_default_size"),
+        patch.object(MainWindow, "set_content"),
+    ):
+        win = MainWindow()
+        controller = MagicMock()
+        win.controller = controller
+        book = Book(path="1", title="Old", author="Old")
+
+        with patch("src.ui.main_window.Adw.Dialog") as mock_dialog:
+            # We can't easily simulate the GTK event loop and button clicks here,
+            # but we can test the on_edit_metadata_clicked method itself.
+            win.on_edit_metadata_clicked(book, MagicMock())
+            mock_dialog.assert_called_once()

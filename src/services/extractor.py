@@ -1,5 +1,6 @@
 """Service for extracting book covers from PDF and EPUB files."""
 
+import hashlib
 import logging
 from pathlib import Path
 from typing import Optional
@@ -86,14 +87,11 @@ class CoverExtractor:
                 f.write(cover_item.get_content())
 
             return str(output_path)
-        except (OSError, Exception) as e:
+        except Exception as e:
             logger.exception(f"Error extracting EPUB cover from {path}: {e}")
             return None
 
     def _get_output_path(self, path: Path) -> Path:
         """Generate a unique output path for the cover image based on the file path."""
-        # Use a simple hash or just the filename to avoid issues with special characters
-        import hashlib
-
         file_hash = hashlib.md5(str(path.absolute()).encode()).hexdigest()
         return self.cache_dir / f"{file_hash}.png"

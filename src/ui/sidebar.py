@@ -110,9 +110,7 @@ class Sidebar(Adw.Bin):  # type: ignore
 
             self.list_box.append(row)
 
-    def select_category(
-        self, category_id: Optional[int], all_books: bool, silent: bool = False
-    ) -> None:
+    def select_category(self, category_id: Optional[int], all_books: bool) -> None:
         """Programmatically select a category in the list."""
         if category_id is None:
             identifier = "all" if all_books else "uncategorized"
@@ -122,13 +120,7 @@ class Sidebar(Adw.Bin):  # type: ignore
         row = self.list_box.get_first_child()
         while row:
             if isinstance(row, CategoryRow) and row.identifier == identifier:
-                if silent:
-                    # Set selected without emitting signal
-                    self.list_box.select_row(row)
-                    # Since select_row always emits, we can't really avoid it.
-                    # But we can ignore the refresh in MainWindow if we have a flag.
-                else:
-                    self.list_box.select_row(row)
+                self.list_box.select_row(row)
                 return
             row = row.get_next_sibling()
 

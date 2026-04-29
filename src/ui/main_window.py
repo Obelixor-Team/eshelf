@@ -544,11 +544,11 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             self.controller.open_book(book)
 
     def on_book_right_clicked(self, widget: Gtk.Widget, book: Book) -> None:
-        """Handle book right-click to move to category."""
+        """Handle book right-click to move to category or edit metadata."""
         if not self.controller:
             return
 
-        # Create a popover for category selection
+        # Create a popover for actions
         popover = Gtk.Popover()
         popover.set_parent(widget)
 
@@ -558,6 +558,17 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         box.set_margin_start(6)
         box.set_margin_end(6)
         popover.set_child(box)
+
+        # Edit metadata action
+        edit_btn = Gtk.Button(label="Edit Metadata")
+        edit_btn.connect(
+            "clicked", lambda _: self.on_edit_metadata_clicked(book, popover)
+        )
+        box.append(edit_btn)
+
+        # Separator
+        separator = Gtk.Separator()
+        box.append(separator)
 
         # "Uncategorized" option
         uncat_btn = Gtk.Button(label="Move to Uncategorized")
@@ -587,3 +598,56 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             self.refresh_grid()
             if popover:
                 popover.popdown()
+
+    def on_edit_metadata_clicked(self, book: Book, popover: Gtk.Popover) -> None:
+        """Show a dialog to edit book metadata."""
+        if popover:
+            popover.popdown()
+
+        dialog = Adw.Dialog(title="Edit Metadata", modal=True)
+        dialog.set_transient_for(self)
+        dialog.set_default_size(400, 200)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        box.set_margin_top(12)
+        box.set_margin_bottom(12)
+        box.set_margin_start(12)
+        box.set_margin_end(12)
+        dialog.set_child(box)
+
+        title_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        title_label = Gtk.Label(label="Title", xalign=0)
+        title_entry = Gtk.Entry(text=book.title)
+        title_row.append(title_label)
+        title_row.append(title_entry)
+        box.append(title_row)
+
+        author_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        author_label = Gtk.Label(label="Author", xalign=0)
+        author_entry = Gtk.Entry(text=book.author)
+        author_row.append(author_label)
+        author_row.append(author_entry)
+        box.append(author_row)
+
+        button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        button_box.set_halign(Gtk.Align.END)
+        box.append(button_box)
+
+        def on_save_clicked(button: Gtk.Button) -> None:
+            if self.controller:
+                self.controller.update_book_metadata(
+                    book.path, title_entry.get_text(), author_entry.get_text()
+                )
+                self.refresh_grid()
+                dialog.destroy()
+
+        save_btn = Gtk.Button(label="Save")
+        save_btn.add_css_class("suggested-action")
+        save_btn.connect("clicked", on_save_clicked)
+        button_box.append(save_btn)
+
+        cancel_btn = Gtk.Button(label="Cancel")
+        cancel_btn.connect("clicked", lambda _: dialog.destroy())
+        button_box.append(cancel_btn)
+
+        dialog.present()

@@ -139,6 +139,15 @@ class BookRepository:
             )
             conn.commit()
 
+    def update_book_metadata(self, path: str, title: str, author: str) -> None:
+        """Update the title and author of a book."""
+        with self._get_connection() as conn:
+            conn.execute(
+                "UPDATE books SET title = ?, author = ? WHERE path = ?",
+                (title, author, path),
+            )
+            conn.commit()
+
     def create_category(self, name: str) -> int:
         """Create a new category and return its ID."""
         with self._get_connection() as conn:

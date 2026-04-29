@@ -2,6 +2,7 @@
 
 import os
 import tempfile
+from datetime import datetime
 from typing import Generator
 from unittest.mock import MagicMock, patch
 
@@ -11,7 +12,7 @@ from src.controller.main_controller import MainController
 from src.models.book import Book
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore
 def controller_env() -> Generator[tuple[MainController, str], None, None]:
     """Fixture to provide a controller with a temporary database and cache."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -103,11 +104,16 @@ def test_controller_import_file_success(
     controller.repository = mock_repo
     controller.extractor = mock_extractor
 
+    # Mock metadata extractor
+    controller.metadata_extractor = MagicMock()
+    controller.metadata_extractor.extract.return_value = ("Book Title", "Book Author")
+
     success = controller.import_file("/path/to/book.pdf")
     assert success is True
     mock_repo.add_book.assert_called_once()
     args = mock_repo.add_book.call_args[0][0]
-    assert args.title == "book"
+    assert args.title == "Book Title"
+    assert args.author == "Book Author"
     assert args.cover_path == "/cache/cover.jpg"
 
 
@@ -118,3 +124,61 @@ def test_controller_import_file_invalid(
     controller, _ = controller_env
     success = controller.import_file("/path/to/image.png")
     assert success is False
+
+
+def test_controller_update_metadata(controller_env: tuple[MainController, str]) -> None:
+    """Test updating book metadata via controller."""
+    controller, _ = controller_env
+    mock_repo = MagicMock()
+    controller.repository = mock_repo
+
+    controller.update_book_metadata("/path/to/book.pdf", "New Title", "New Author")
+    mock_repo.update_book_metadata.assert_called_once_with(
+        "/path/to/book.pdf", "New Title", "New Author"
+    )
+
+
+def test_controller_sort_books(controller_env: tuple[MainController, str]) -> None:
+    """Test sorting books via controller."""
+    controller, _ = controller_env
+    books = [
+        Book(path="1", title="B", author="X"),
+        Book(path="2", title="A", author="Y"),
+    ]
+
+    assert controller.sort_books(books, "Title")[0].title == "A"
+    assert controller.sort_books(books, "Author")[0].author == "X"
+
+    # Test Recently Added (mock created_at)
+    books[0].created_at = datetime(2023, 1, 1)
+    books[1].created_at = datetime(2023, 1, 2)
+    assert controller.sort_books(books, "Recently Added")[0].path == "2"
+
+
+def test_controller_category_filtering(
+    controller_env: tuple[MainController, str],
+) -> None:
+    """Test retrieving books by category and uncategorized."""
+    controller, _ = controller_env
+    mock_repo = MagicMock()
+    controller.repository = mock_repo
+
+    controller.get_books(category_id=123)
+    mock_repo.get_books_by_category.assert_called_with(123)
+
+    controller.get_uncategorized_books()
+    mock_repo.get_books_by_category.assert_called_with(None)
+
+
+def test_controller_import_file_failure(
+    controller_env: tuple[MainController, str],
+) -> None:
+    """Test importing a file that fails metadata extraction."""
+    controller, _ = controller_env
+
+    # Mock metadata extractor to fail (it doesn't raise, just returns defaults)
+    # But let's mock the path suffix check
+    with patch("src.controller.main_controller.Path") as mock_path:
+        mock_path.return_value.suffix = ".txt"
+        success = controller.import_file("/path/to/file.txt")
+        assert success is False

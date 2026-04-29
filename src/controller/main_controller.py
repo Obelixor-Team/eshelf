@@ -9,6 +9,7 @@ from src.database.repository import BookRepository
 from src.models.book import Book
 from src.models.category import Category
 from src.services.extractor import CoverExtractor
+from src.services.metadata_extractor import MetadataExtractor
 from src.services.scanner import BookScanner
 
 
@@ -35,6 +36,7 @@ class MainController:
         self.library_dir = library_dir
         self.repository = BookRepository(db_path)
         self.extractor = CoverExtractor(cache_dir)
+        self.metadata_extractor = MetadataExtractor()
         self.scanner = BookScanner(self.repository, self.extractor)
         self.error_callback = error_callback
 
@@ -111,8 +113,7 @@ class MainController:
         if path.suffix.lower() not in (".pdf", ".epub"):
             return False
 
-        title = path.stem
-        author = "Unknown Author"
+        title, author = self.metadata_extractor.extract(file_path)
         cover_path = self.extractor.extract(file_path)
 
         book = Book(
@@ -127,6 +128,10 @@ class MainController:
     def cleanup_library(self) -> int:
         """Remove missing books and return count of removed books."""
         return self.scanner.cleanup_missing(self.library_dir)
+
+    def update_book_metadata(self, book_path: str, title: str, author: str) -> None:
+        """Update the metadata for a book."""
+        self.repository.update_book_metadata(book_path, title, author)
 
     def open_book(self, book: Book) -> None:
         """Open a book using the system's default application."""
