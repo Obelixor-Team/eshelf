@@ -442,9 +442,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         """Handle the settings button click."""
         config = load_config()
 
-        dialog = Adw.Dialog(title="Settings", modal=True)
-        dialog.set_transient_for(self)
-        dialog.set_default_size(400, 300)
+        dialog = Adw.Dialog(title="Settings")
 
         # Main container for the dialog content
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
@@ -559,7 +557,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                 save_config(new_config)
                 self.grid.update_config(new_config)
                 self.refresh_grid()
-                dialog.destroy()
+                dialog.close()
             except ValueError as e:
                 self.show_error(str(e))
 
@@ -569,7 +567,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         button_box.append(save_btn)
 
         cancel_btn = Gtk.Button(label="Cancel")
-        cancel_btn.connect("clicked", lambda _: dialog.destroy())
+        cancel_btn.connect("clicked", lambda _: dialog.close())
         button_box.append(cancel_btn)
 
         dialog.present()
@@ -640,9 +638,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         if popover:
             popover.popdown()
 
-        dialog = Adw.Dialog(title="Edit Metadata", modal=True)
-        dialog.set_transient_for(self)
-        dialog.set_default_size(400, 200)
+        dialog = Adw.Dialog(title="Edit Metadata")
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         box.set_margin_top(12)
@@ -675,7 +671,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                     book.path, title_entry.get_text(), author_entry.get_text()
                 )
                 self.refresh_grid()
-                dialog.destroy()
+                dialog.close()
 
         save_btn = Gtk.Button(label="Save")
         save_btn.add_css_class("suggested-action")
@@ -683,7 +679,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         button_box.append(save_btn)
 
         cancel_btn = Gtk.Button(label="Cancel")
-        cancel_btn.connect("clicked", lambda _: dialog.destroy())
+        cancel_btn.connect("clicked", lambda _: dialog.close())
         button_box.append(cancel_btn)
 
         dialog.present()
