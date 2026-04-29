@@ -204,6 +204,28 @@ class BookRepository:
                 for row in cursor.fetchall()
             ]
 
+    def search_books(self, query: str) -> List[Book]:
+        """Search for books by title or author using a case-insensitive search."""
+        with self._get_connection() as conn:
+            search_pattern = f"%{query}%"
+            query_str = (
+                "SELECT path, title, author, cover_path, category_id, created_at "
+                "FROM books "
+                "WHERE LOWER(title) LIKE LOWER(?) OR LOWER(author) LIKE LOWER(?)"
+            )
+            cursor = conn.execute(query_str, (search_pattern, search_pattern))
+            return [
+                Book(
+                    path=row[0],
+                    title=row[1],
+                    author=row[2],
+                    cover_path=row[3],
+                    category_id=row[4],
+                    created_at=datetime.fromisoformat(row[5]) if row[5] else None,
+                )
+                for row in cursor.fetchall()
+            ]
+
     def clear(self) -> None:
         """Remove all books from the database."""
         with self._get_connection() as conn:

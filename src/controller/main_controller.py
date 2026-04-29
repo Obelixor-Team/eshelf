@@ -59,13 +59,7 @@ class MainController:
 
     def search_books(self, query: str) -> List[Book]:
         """Search for books by title or author."""
-        all_books = self.repository.get_all_books()
-        query = query.lower()
-        return [
-            book
-            for book in all_books
-            if query in book.title.lower() or query in book.author.lower()
-        ]
+        return self.repository.search_books(query)
 
     def sort_books(self, books: List[Book], sort_by: str) -> List[Book]:
         """Sort books based on the given option."""
