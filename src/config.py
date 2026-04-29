@@ -10,6 +10,7 @@ DEFAULT_CONFIG = {
     "books_per_line": 6,
     "zoom_level": 1.0,
     "cache_dir": os.path.join(os.path.expanduser("~"), ".cache", "eshelf", "covers"),
+    "library_dir": os.path.join(os.path.expanduser("~"), "Books"),
 }
 
 
@@ -39,6 +40,10 @@ def save_config(config: dict[str, Any]) -> None:
     cache_dir = config.get("cache_dir")
     if not isinstance(cache_dir, str):
         raise ValueError("cache_dir must be a string")
+
+    library_dir = config.get("library_dir")
+    if not isinstance(library_dir, str):
+        raise ValueError("library_dir must be a string")
 
     os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
     with open(CONFIG_FILE, "w") as f:

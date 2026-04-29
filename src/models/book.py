@@ -1,6 +1,7 @@
 """Book model for storing book metadata."""
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional
 
 
@@ -14,6 +15,7 @@ class Book:
         author (str): Author of the book.
         cover_path (Optional[str]): Path to the extracted cover image.
         category_id (Optional[int]): ID of the category the book belongs to.
+        created_at (Optional[datetime]): When the book was added to the library.
     """
 
     path: str
@@ -21,3 +23,4 @@ class Book:
     author: str
     cover_path: Optional[str] = None
     category_id: Optional[int] = None
+    created_at: Optional[datetime] = None

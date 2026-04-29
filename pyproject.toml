@@ -7,6 +7,7 @@ dependencies = [
     "pillow",
     "ebooklib",
     "PyGObject",
+    "pymupdf",
 ]
 
 [tool.commitizen]

@@ -1,5 +1,6 @@
 """Main window for the eShelf application."""
 
+import threading
 from typing import Any, Optional
 
 import gi
@@ -31,7 +32,10 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
         # Main layout
         self.main_layout = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        self.set_content(self.main_layout)
+
+        self.toast_overlay = Adw.ToastOverlay()
+        self.set_content(self.toast_overlay)
+        self.toast_overlay.set_child(self.main_layout)
 
         # Sidebar setup
         self.sidebar = Sidebar(
@@ -97,6 +101,21 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.scan_button.connect("clicked", self.on_scan_clicked)
         self.header_bar.pack_start(self.scan_button)
 
+        # Search entry
+        self.search_entry = Gtk.SearchEntry()
+        self.search_entry.set_placeholder_text("Search title or author...")
+        self.search_entry.connect("search-changed", self.on_search_changed)
+        self.header_bar.pack_start(self.search_entry)
+
+        # Sort options
+        self.sort_combo = Gtk.ComboBoxText()
+        self.sort_combo.append_text("Title")
+        self.sort_combo.append_text("Author")
+        self.sort_combo.append_text("Recently Added")
+        self.sort_combo.set_active(0)
+        self.sort_combo.connect("changed", self.on_sort_changed)
+        self.header_bar.pack_start(self.sort_combo)
+
         # Progress bar
         self.progress_bar = Gtk.ProgressBar()
         self.progress_bar.set_visible(False)
@@ -133,6 +152,15 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         dialog.set_default_response("ok")
         dialog.present()
 
+    def show_toast(self, message: str) -> None:
+        """Show a toast notification."""
+
+        def _show() -> None:
+            toast = Adw.Toast(message)
+            self.toast_overlay.add_toast(toast)
+
+        GLib.idle_add(_show)
+
     def refresh_sidebar(self) -> None:
         """Update the sidebar with current categories."""
         if self.controller:
@@ -140,16 +168,26 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             self.sidebar.update_categories(categories)
 
     def refresh_grid(
-        self, category_id: Optional[int] = None, all_books: bool = True
+        self,
+        category_id: Optional[int] = None,
+        all_books: bool = True,
+        search_text: Optional[str] = None,
+        sort_by: Optional[str] = None,
     ) -> None:
         """Update the grid with books from the controller."""
         if self.controller:
-            if all_books:
+            if search_text:
+                books = self.controller.search_books(search_text)
+            elif all_books:
                 books = self.controller.get_books(None)
             elif category_id is None:
                 books = self.controller.get_uncategorized_books()
             else:
                 books = self.controller.get_books(category_id)
+
+            if sort_by:
+                books = self.controller.sort_books(books, sort_by)
+
             self.grid.update_books(books)
 
     def on_category_selected(self, category_id: Optional[int], all_books: bool) -> None:
@@ -209,7 +247,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                     if success:
                         self.refresh_grid()
             except Exception as e:
-                print(f"Error importing file: {e}")
+                self.show_error(f"Error importing file: {e}")
 
         dialog.open(self, None, on_open_response)
 
@@ -228,9 +266,11 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                     path = folder.get_path()
                     added, updated = controller.import_folder(path)
                     self.refresh_grid()
-                    print(f"Folder import complete: {added} added, {updated} updated.")
+                    self.show_toast(
+                        f"Folder import complete: {added} added, {updated} updated."
+                    )
             except Exception as e:
-                print(f"Error importing folder: {e}")
+                self.show_error(f"Error importing folder: {e}")
 
         dialog.select_folder(self, None, on_open_response)
 
@@ -243,8 +283,6 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.scan_button.set_sensitive(False)
         self.progress_bar.set_visible(True)
         self.progress_bar.set_fraction(0.0)
-
-        import threading
 
         def scan_worker() -> None:
             def progress_update(current: int, total: int) -> None:
@@ -273,15 +311,25 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.scan_button.set_sensitive(True)
         self.progress_bar.set_visible(False)
         self.refresh_grid()
-        print(f"Scan complete: {added} added, {updated} updated.")
+        self.show_toast(f"Scan complete: {added} added, {updated} updated.")
         return False
+
+    def on_search_changed(self, entry: Gtk.SearchEntry) -> None:
+        """Handle search text changes."""
+        search_text = entry.get_text()
+        self.refresh_grid(search_text=search_text)
+
+    def on_sort_changed(self, combo: Gtk.ComboBoxText) -> None:
+        """Handle sort option changes."""
+        sort_option = combo.get_active_text()
+        self.refresh_grid(sort_by=sort_option)
 
     def on_cleanup_clicked(self, button: Gtk.Button) -> None:
         """Handle the cleanup button click."""
         if self.controller:
             removed = self.controller.cleanup_library()
             self.refresh_grid()
-            print(f"Cleanup complete: {removed} books removed.")
+            self.show_toast(f"Cleanup complete: {removed} books removed.")
 
     def on_settings_clicked(self, button: Gtk.Button) -> None:
         """Handle the settings button click."""
@@ -333,6 +381,32 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         zoom_row.add_suffix(zoom_spin)
         group.add(zoom_row)
 
+        # Library directory
+        library_row = Adw.ActionRow(title="Library directory")
+        library_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        library_entry = Gtk.Entry(text=config.get("library_dir", ""))
+        library_entry.set_hexpand(True)
+
+        def on_library_browse_clicked(button: Gtk.Button) -> None:
+            folder_dialog = Gtk.FileDialog(title="Select Library Directory")
+
+            def on_library_folder_response(dialog: Any, result: Any) -> None:
+                try:
+                    folder = dialog.select_folder_finish(result)
+                    if folder:
+                        library_entry.set_text(folder.get_path())
+                except Exception as e:
+                    self.show_error(f"Error selecting folder: {e}")
+
+            folder_dialog.select_folder(self, on_library_folder_response)
+
+        library_browse_button = Gtk.Button(icon_name="folder-open-symbolic")
+        library_browse_button.connect("clicked", on_library_browse_clicked)
+        library_box.append(library_entry)
+        library_box.append(library_browse_button)
+        library_row.add_suffix(library_box)
+        group.add(library_row)
+
         # Cache directory
         cache_row = Adw.ActionRow(title="Cache directory")
         cache_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
@@ -372,6 +446,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                 new_config = {
                     "books_per_line": int(books_per_line_spin.get_value()),
                     "zoom_level": float(zoom_spin.get_value()),
+                    "library_dir": library_entry.get_text(),
                     "cache_dir": cache_entry.get_text(),
                 }
                 save_config(new_config)

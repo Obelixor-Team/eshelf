@@ -1,11 +1,14 @@
 """Service for extracting book covers from PDF and EPUB files."""
 
+import logging
 from pathlib import Path
 from typing import Optional
 
 import ebooklib
 from ebooklib import epub
 from pdf2image import convert_from_path
+
+logger = logging.getLogger(__name__)
 
 
 class CoverExtractor:
@@ -51,8 +54,8 @@ class CoverExtractor:
             output_path = self._get_output_path(path)
             cover_image.save(output_path, "PNG")
             return str(output_path)
-        except Exception as e:
-            print(f"Error extracting PDF cover from {path}: {e}")
+        except (OSError, RuntimeError) as e:
+            logger.exception(f"Error extracting PDF cover from {path}: {e}")
             return None
 
     def _extract_epub(self, path: Path) -> Optional[str]:
@@ -83,8 +86,8 @@ class CoverExtractor:
                 f.write(cover_item.get_content())
 
             return str(output_path)
-        except Exception as e:
-            print(f"Error extracting EPUB cover from {path}: {e}")
+        except (OSError, Exception) as e:
+            logger.exception(f"Error extracting EPUB cover from {path}: {e}")
             return None
 
     def _get_output_path(self, path: Path) -> Path:

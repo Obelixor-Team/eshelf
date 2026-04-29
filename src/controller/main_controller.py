@@ -1,5 +1,6 @@
 """Controller to coordinate between the UI and the backend services."""
 
+import logging
 import subprocess
 from pathlib import Path
 from typing import Callable, List, Optional
@@ -13,6 +14,8 @@ from src.services.scanner import BookScanner
 
 class MainController:
     """Coordinates book scanning, persistence, and UI updates."""
+
+    logger = logging.getLogger(__name__)
 
     def __init__(
         self,
@@ -51,6 +54,30 @@ class MainController:
     def get_categories(self) -> List[Category]:
         """Retrieve all categories."""
         return self.repository.get_all_categories()
+
+    def search_books(self, query: str) -> List[Book]:
+        """Search for books by title or author."""
+        all_books = self.repository.get_all_books()
+        query = query.lower()
+        return [
+            book
+            for book in all_books
+            if query in book.title.lower() or query in book.author.lower()
+        ]
+
+    def sort_books(self, books: List[Book], sort_by: str) -> List[Book]:
+        """Sort books based on the given option."""
+        if sort_by == "Title":
+            return sorted(books, key=lambda b: b.title.lower())
+        elif sort_by == "Author":
+            return sorted(books, key=lambda b: b.author.lower())
+        elif sort_by == "Recently Added":
+            return sorted(
+                books,
+                key=lambda b: b.created_at or b.path,  # Fallback for None
+                reverse=True,
+            )
+        return books
 
     def create_category(self, name: str) -> int:
         """Create a new category."""
@@ -110,4 +137,4 @@ class MainController:
             if self.error_callback:
                 self.error_callback(error_msg)
             else:
-                print(error_msg)
+                self.logger.error(error_msg)

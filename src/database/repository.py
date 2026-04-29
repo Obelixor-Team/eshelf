@@ -44,11 +44,18 @@ class BookRepository:
                     author TEXT NOT NULL,
                     cover_path TEXT,
                     category_id INTEGER,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (category_id) REFERENCES categories (id)
                     ON DELETE SET NULL
                 )
                 """
             )
+            # Migration: Add created_at to books table if it doesn't exist
+            cursor = conn.execute("PRAGMA table_info(books)")
+            columns = [column[1] for column in cursor.fetchall()]
+            if "created_at" not in columns:
+                conn.execute("ALTER TABLE books ADD COLUMN created_at DATETIME")
+
             conn.commit()
 
     def add_book(self, book: Book) -> None:
@@ -56,22 +63,34 @@ class BookRepository:
         with self._get_connection() as conn:
             conn.execute(
                 """
-                INSERT INTO books (path, title, author, cover_path, category_id)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO books (
+                    path, title, author, cover_path, category_id, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT(path) DO UPDATE SET
                     title = excluded.title,
                     author = excluded.author,
                     cover_path = excluded.cover_path,
                     category_id = COALESCE(excluded.category_id, books.category_id)
                 """,
-                (book.path, book.title, book.author, book.cover_path, book.category_id),
+                (
+                    book.path,
+                    book.title,
+                    book.author,
+                    book.cover_path,
+                    book.category_id,
+                    book.created_at,
+                ),
             )
             conn.commit()
 
     def get_all_books(self) -> List[Book]:
         """Retrieve all books from the database."""
         with self._get_connection() as conn:
-            query = "SELECT path, title, author, cover_path, category_id FROM books"
+            query = (
+                "SELECT path, title, author, cover_path, category_id, created_at "
+                "FROM books"
+            )
             cursor = conn.execute(query)
             return [
                 Book(
@@ -80,6 +99,7 @@ class BookRepository:
                     author=row[2],
                     cover_path=row[3],
                     category_id=row[4],
+                    created_at=row[5],
                 )
                 for row in cursor.fetchall()
             ]
@@ -88,7 +108,7 @@ class BookRepository:
         """Find a book by its file path."""
         with self._get_connection() as conn:
             query = (
-                "SELECT path, title, author, cover_path, category_id "
+                "SELECT path, title, author, cover_path, category_id, created_at "
                 "FROM books WHERE path = ?"
             )
             cursor = conn.execute(query, (path,))
@@ -100,6 +120,7 @@ class BookRepository:
                     author=row[2],
                     cover_path=row[3],
                     category_id=row[4],
+                    created_at=row[5],
                 )
             return None
 
@@ -148,13 +169,13 @@ class BookRepository:
         with self._get_connection() as conn:
             if category_id is None:
                 query = (
-                    "SELECT path, title, author, cover_path, category_id "
+                    "SELECT path, title, author, cover_path, category_id, created_at "
                     "FROM books WHERE category_id IS NULL"
                 )
                 cursor = conn.execute(query)
             else:
                 query = (
-                    "SELECT path, title, author, cover_path, category_id "
+                    "SELECT path, title, author, cover_path, category_id, created_at "
                     "FROM books WHERE category_id = ?"
                 )
                 cursor = conn.execute(query, (category_id,))
@@ -165,6 +186,7 @@ class BookRepository:
                     author=row[2],
                     cover_path=row[3],
                     category_id=row[4],
+                    created_at=row[5],
                 )
                 for row in cursor.fetchall()
             ]

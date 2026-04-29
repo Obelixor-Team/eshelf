@@ -20,7 +20,7 @@ def main() -> None:
     """Initialize and run the eShelf application."""
     config = load_config()
     home = os.path.expanduser("~")
-    library_dir = os.path.join(home, "Documents", "Books")
+    library_dir = str(config.get("library_dir") or DEFAULT_CONFIG["library_dir"])
     db_path = os.path.join(home, ".local/share/eshelf/library.db")
     cache_dir = str(config.get("cache_dir") or DEFAULT_CONFIG["cache_dir"])
 

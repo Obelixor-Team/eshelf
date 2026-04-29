@@ -42,6 +42,7 @@ def test_save_and_load_config(mock_config_file: str) -> None:
         "books_per_line": 5,
         "zoom_level": 1.5,
         "cache_dir": "/tmp/eshelf_cache",
+        "library_dir": "/tmp/eshelf_library",
     }
 
     save_config(test_config)
@@ -50,6 +51,7 @@ def test_save_and_load_config(mock_config_file: str) -> None:
     assert loaded_config["books_per_line"] == 5
     assert loaded_config["zoom_level"] == 1.5
     assert loaded_config["cache_dir"] == "/tmp/eshelf_cache"
+    assert loaded_config["library_dir"] == "/tmp/eshelf_library"
 
 
 def test_load_config_partial(mock_config_file: str) -> None:
@@ -61,3 +63,45 @@ def test_load_config_partial(mock_config_file: str) -> None:
     config = load_config()
     assert config["books_per_line"] == 20
     assert config["zoom_level"] == src.config.DEFAULT_CONFIG["zoom_level"]
+
+
+def test_save_config_validation(mock_config_file: str) -> None:
+    """Test that save_config validates input."""
+    valid_config = {
+        "books_per_line": 6,
+        "zoom_level": 1.0,
+        "cache_dir": "/tmp/cache",
+        "library_dir": "/tmp/library",
+    }
+
+    # Test invalid books_per_line
+    invalid_books = valid_config.copy()
+    invalid_books["books_per_line"] = 0
+    with pytest.raises(ValueError, match="books_per_line must be a positive integer"):
+        save_config(invalid_books)
+
+    invalid_books["books_per_line"] = "6"
+    with pytest.raises(ValueError, match="books_per_line must be a positive integer"):
+        save_config(invalid_books)
+
+    # Test invalid zoom_level
+    invalid_zoom = valid_config.copy()
+    invalid_zoom["zoom_level"] = 0.05
+    with pytest.raises(ValueError, match="zoom_level must be a positive number >= 0.1"):
+        save_config(invalid_zoom)
+
+    invalid_zoom["zoom_level"] = "1.0"
+    with pytest.raises(ValueError, match="zoom_level must be a positive number >= 0.1"):
+        save_config(invalid_zoom)
+
+    # Test invalid cache_dir
+    invalid_cache = valid_config.copy()
+    invalid_cache["cache_dir"] = 123
+    with pytest.raises(ValueError, match="cache_dir must be a string"):
+        save_config(invalid_cache)
+
+    # Test invalid library_dir
+    invalid_lib = valid_config.copy()
+    invalid_lib["library_dir"] = 123
+    with pytest.raises(ValueError, match="library_dir must be a string"):
+        save_config(invalid_lib)

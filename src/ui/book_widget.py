@@ -1,5 +1,6 @@
 """UI component representing a single book on the shelf."""
 
+import logging
 from typing import Callable, Optional
 
 import gi  # noqa: E402
@@ -14,6 +15,8 @@ from src.models.book import Book  # noqa: E402
 
 class BookWidget(Gtk.Box):  # type: ignore
     """A widget that displays a book's cover and title."""
+
+    logger = logging.getLogger(__name__)
 
     def __init__(
         self,
@@ -55,7 +58,7 @@ class BookWidget(Gtk.Box):  # type: ignore
                 texture = Gdk.Texture.new_from_filename(book.cover_path)
                 image.set_paintable(texture)
             except Exception as e:
-                print(f"Error loading cover image: {e}")
+                self.logger.error(f"Error loading cover image: {e}")
 
         self.append(image)
 

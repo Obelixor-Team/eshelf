@@ -1,11 +1,13 @@
 """Service for scanning directories for books and updating the library."""
 
+from datetime import datetime
 from pathlib import Path
 from typing import Callable, Optional, Tuple
 
 from src.database.repository import BookRepository
 from src.models.book import Book
 from src.services.extractor import CoverExtractor
+from src.services.metadata_extractor import MetadataExtractor
 
 
 class BookScanner:
@@ -20,6 +22,7 @@ class BookScanner:
         """
         self.repository = repository
         self.extractor = extractor
+        self.metadata_extractor = MetadataExtractor()
 
     def scan(
         self,
@@ -55,10 +58,8 @@ class BookScanner:
 
             file_path = str(file.absolute())
 
-            # Basic metadata extraction (filename as title)
-            # In a real app, we'd use a library to get actual metadata from the file
-            title = file.stem
-            author = "Unknown Author"
+            # Extract metadata
+            title, author = self.metadata_extractor.extract(file_path)
 
             # Check if book already exists
             existing_book = self.repository.get_book_by_path(file_path)
@@ -86,6 +87,7 @@ class BookScanner:
                         author=author,
                         cover_path=cover_path,
                         category_id=existing_book.category_id,
+                        created_at=existing_book.created_at,
                     )
                     self.repository.add_book(book)
                     updated += 1
@@ -95,6 +97,7 @@ class BookScanner:
                     title=title,
                     author=author,
                     cover_path=cover_path,
+                    created_at=datetime.now(),
                 )
                 self.repository.add_book(book)
                 added += 1
@@ -114,7 +117,10 @@ class BookScanner:
         all_books = self.repository.get_all_books()
 
         for book in all_books:
-            if book.path.startswith(directory) and not Path(book.path).exists():
+            if (
+                Path(book.path).is_relative_to(Path(directory))
+                and not Path(book.path).exists()
+            ):
                 self.repository.remove_book(book.path)
                 removed += 1
 
