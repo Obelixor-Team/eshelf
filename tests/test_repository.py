@@ -153,3 +153,19 @@ def test_repository_update_book_preserves_category() -> None:
         assert retrieved is not None
         assert retrieved.title == "Updated"
         assert retrieved.category_id == cat_id
+
+
+def test_repository_update_metadata() -> None:
+    """Test updating book metadata directly."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = os.path.join(tmpdir, "test.db")
+        repo = BookRepository(db_path)
+
+        book = Book(path="/path/to/book.pdf", title="Old Title", author="Old Author")
+        repo.add_book(book)
+
+        repo.update_book_metadata("/path/to/book.pdf", "New Title", "New Author")
+        retrieved = repo.get_book_by_path("/path/to/book.pdf")
+        assert retrieved is not None
+        assert retrieved.title == "New Title"
+        assert retrieved.author == "New Author"
