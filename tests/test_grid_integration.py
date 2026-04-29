@@ -60,8 +60,8 @@ def test_shelf_grid_layout_columns() -> None:
             app.quit()
             return False
 
-        alloc1 = child1.get_allocation()
-        alloc2 = child2.get_allocation()
+        alloc1 = child1.allocation
+        alloc2 = child2.allocation
 
         print(f"Child 1: x={alloc1.x}")
         print(f"Child 2: x={alloc2.x}")

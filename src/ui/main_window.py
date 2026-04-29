@@ -109,12 +109,13 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.header_bar.pack_start(self.search_entry)
 
         # Sort options
-        self.sort_combo = Gtk.ComboBoxText()
-        self.sort_combo.append_text("Title")
-        self.sort_combo.append_text("Author")
-        self.sort_combo.append_text("Recently Added")
-        self.sort_combo.set_active(0)
-        self.sort_combo.connect("changed", self.on_sort_changed)
+        sort_model = Gtk.StringList()
+        sort_model.append("Title")
+        sort_model.append("Author")
+        sort_model.append("Recently Added")
+        self.sort_combo = Gtk.DropDown(model=sort_model)
+        self.sort_combo.set_selected(0)
+        self.sort_combo.connect("notify::selected", self.on_sort_changed)
         self.header_bar.pack_start(self.sort_combo)
 
         # Progress bar
@@ -156,9 +157,10 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             last_sort = config.get("last_sort_option", "Title")
             # Find index of last_sort in combo
             model = self.sort_combo.get_model()
-            for i in range(len(model)):
-                if model[i][0] == last_sort:
-                    self.sort_combo.set_active(i)
+            for i in range(model.get_n_items()):
+                item = model.get_item(i)
+                if item.get_string() == last_sort:
+                    self.sort_combo.set_selected(i)
                     break
 
             self.refresh_sidebar()
@@ -224,7 +226,8 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         config["sidebar_visible"] = self.sidebar.get_visible()
 
         # Sort option
-        config["last_sort_option"] = self.sort_combo.get_active_text() or "Title"
+        item = self.sort_combo.get_selected_item()
+        config["last_sort_option"] = item.get_string() if item is not None else "Title"
 
         # Active category
         selected_row = self.sidebar.list_box.get_selected_row()
@@ -415,9 +418,13 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         search_text = entry.get_text()
         self.refresh_grid(search_text=search_text)
 
-    def on_sort_changed(self, combo: Gtk.ComboBoxText) -> None:
+    def on_sort_changed(self, combo: Gtk.DropDown) -> None:
         """Handle sort option changes."""
-        sort_option = combo.get_active_text()
+        item = combo.get_selected_item()
+        if item is not None:
+            sort_option = item.get_string()
+        else:
+            sort_option = "Title"
         self.refresh_grid(sort_by=sort_option)
         self.save_ui_state()
 
