@@ -45,11 +45,17 @@ class ShelfGrid(Gtk.Grid):  # type: ignore
             self.remove(child)
             child = self.get_first_child()
 
-        # Get column count from config
+        # Get column count and zoom from config
         config = load_config()
         cols = config.get("books_per_line", 4)
+        zoom_level = config.get("zoom_level", 1.0)
 
         # Explicit grid with dynamic columns
         for i, book in enumerate(books):
-            widget = BookWidget(book, self.on_book_selected, self.on_book_right_clicked)
+            widget = BookWidget(
+                book,
+                self.on_book_selected,
+                zoom_level=zoom_level,
+                on_right_click_callback=self.on_book_right_clicked,
+            )
             self.attach(widget, i % cols, i // cols, 1, 1)

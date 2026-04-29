@@ -13,7 +13,7 @@ class Book:
         title (str): Title of the book.
         author (str): Author of the book.
         cover_path (Optional[str]): Path to the extracted cover image.
-    category_id (Optional[int]): ID of the category the book belongs to.
+        category_id (Optional[int]): ID of the category the book belongs to.
     """
 
     path: str

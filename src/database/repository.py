@@ -44,13 +44,6 @@ class BookRepository:
                 )
                 """
             )
-            try:
-                conn.execute(
-                    "ALTER TABLE books ADD COLUMN category_id INTEGER "
-                    "REFERENCES categories (id) ON DELETE SET NULL"
-                )
-            except sqlite3.OperationalError:
-                pass
             conn.commit()
 
     def add_book(self, book: Book) -> None:

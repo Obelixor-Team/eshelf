@@ -274,15 +274,18 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         """Handle the settings button click."""
         config = load_config()
 
-        dialog = Gtk.Dialog(title="Settings", transient_for=self, modal=True)
-        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
-        dialog.add_button("Save", Gtk.ResponseType.OK)
+        dialog = Gtk.Window(title="Settings", transient_for=self, modal=True)
+        dialog.set_default_size(400, 300)
 
-        content_area = dialog.get_content_area()
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        dialog.set_child(main_box)
+
+        content_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         content_area.set_margin_top(12)
         content_area.set_margin_bottom(12)
         content_area.set_margin_start(12)
         content_area.set_margin_end(12)
+        main_box.append(content_area)
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         content_area.append(box)
@@ -335,7 +338,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                 except Exception as e:
                     print(f"Error selecting folder: {e}")
 
-            folder_dialog.select_folder(dialog, on_folder_response)
+            folder_dialog.select_folder(self, on_folder_response)
 
         browse_button = Gtk.Button(label="Browse")
         browse_button.connect("clicked", on_browse_clicked)
@@ -345,18 +348,31 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         cache_row.append(browse_button)
         box.append(cache_row)
 
-        def on_response(dialog: Gtk.Dialog, response_id: int) -> None:
-            if response_id == Gtk.ResponseType.OK:
-                new_config = {
-                    "books_per_line": int(books_per_line_spin.get_value()),
-                    "zoom_level": float(zoom_spin.get_value()),
-                    "cache_dir": cache_entry.get_text(),
-                }
-                save_config(new_config)
-                self.refresh_grid()
+        # Buttons
+        button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        button_box.set_halign(Gtk.Align.END)
+        button_box.set_margin_bottom(12)
+        button_box.set_margin_end(12)
+        main_box.append(button_box)
+
+        def on_save_clicked(button: Gtk.Button) -> None:
+            new_config = {
+                "books_per_line": int(books_per_line_spin.get_value()),
+                "zoom_level": float(zoom_spin.get_value()),
+                "cache_dir": cache_entry.get_text(),
+            }
+            save_config(new_config)
+            self.refresh_grid()
             dialog.destroy()
 
-        dialog.connect("response", on_response)
+        save_btn = Gtk.Button(label="Save")
+        save_btn.connect("clicked", on_save_clicked)
+        button_box.append(save_btn)
+
+        cancel_btn = Gtk.Button(label="Cancel")
+        cancel_btn.connect("clicked", lambda _: dialog.destroy())
+        button_box.append(cancel_btn)
+
         dialog.present()
 
     def on_book_selected(self, book: Book) -> None:

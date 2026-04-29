@@ -149,6 +149,6 @@ def test_main_window_settings_clicked() -> None:
         patch.object(MainWindow, "set_content"),
     ):
         win = MainWindow()
-        with patch("src.ui.main_window.Gtk.Dialog") as mock_dialog:
+        with patch("src.ui.main_window.Gtk.Window") as mock_dialog:
             win.on_settings_clicked(MagicMock())
             mock_dialog.assert_called_once()

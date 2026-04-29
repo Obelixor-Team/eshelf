@@ -18,18 +18,19 @@ def test_controller_get_books() -> None:
     assert len(books) == 1
     assert books[0].title == "T1"
 
-    def test_controller_scan_library() -> None:
-        """Test scanning library via controller."""
-        mock_scanner = MagicMock()
-        mock_scanner.scan.return_value = (1, 0)
 
-        controller = MainController("lib", "db", "cache")
-        controller.scanner = mock_scanner
+def test_controller_scan_library() -> None:
+    """Test scanning library via controller."""
+    mock_scanner = MagicMock()
+    mock_scanner.scan.return_value = (1, 0)
 
-        added, updated = controller.scan_library()
-        assert added == 1
-        assert updated == 0
-        mock_scanner.scan.assert_called_once_with("lib", progress_callback=None)
+    controller = MainController("lib", "db", "cache")
+    controller.scanner = mock_scanner
+
+    added, updated = controller.scan_library()
+    assert added == 1
+    assert updated == 0
+    mock_scanner.scan.assert_called_once_with("lib", progress_callback=None)
 
 
 def test_controller_cleanup_library() -> None:
@@ -54,20 +55,19 @@ def test_controller_open_book(mock_run: MagicMock) -> None:
     controller.open_book(book)
     mock_run.assert_called_once_with(["xdg-open", "/path/to/book.pdf"], check=True)
 
-    def test_controller_import_folder() -> None:
-        """Test importing a folder via controller."""
-        mock_scanner = MagicMock()
-        mock_scanner.scan.return_value = (2, 1)
 
-        controller = MainController("lib", "db", "cache")
-        controller.scanner = mock_scanner
+def test_controller_import_folder() -> None:
+    """Test importing a folder via controller."""
+    mock_scanner = MagicMock()
+    mock_scanner.scan.return_value = (2, 1)
 
-        added, updated = controller.import_folder("/path/to/folder")
-        assert added == 2
-        assert updated == 1
-        mock_scanner.scan.assert_called_once_with(
-            "/path/to/folder", progress_callback=None
-        )
+    controller = MainController("lib", "db", "cache")
+    controller.scanner = mock_scanner
+
+    added, updated = controller.import_folder("/path/to/folder")
+    assert added == 2
+    assert updated == 1
+    mock_scanner.scan.assert_called_once_with("/path/to/folder", progress_callback=None)
 
 
 def test_controller_import_file_success() -> None:

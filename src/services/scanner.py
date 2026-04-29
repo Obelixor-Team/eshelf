@@ -63,16 +63,25 @@ class BookScanner:
             # Check if book already exists
             existing_book = self.repository.get_book_by_path(file_path)
 
-            # Extract cover
-            cover_path = self.extractor.extract(file_path)
+            # Extract cover only if necessary
+            cover_path = None
+            if (
+                existing_book
+                and existing_book.cover_path
+                and Path(existing_book.cover_path).exists()
+            ):
+                cover_path = existing_book.cover_path
+            else:
+                cover_path = self.extractor.extract(file_path)
 
             if existing_book:
                 if existing_book.cover_path != cover_path:
                     book = Book(
                         path=file_path,
-                        title=title,
-                        author=author,
+                        title=existing_book.title,
+                        author=existing_book.author,
                         cover_path=cover_path,
+                        category_id=existing_book.category_id,
                     )
                     self.repository.add_book(book)
                     updated += 1

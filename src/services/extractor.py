@@ -60,7 +60,10 @@ class CoverExtractor:
         try:
             book = epub.read_epub(path)
             # EPUBs usually define the cover in the metadata
-            cover_item = book.get_item_with_id(book.get_metadata("cover"))
+            cover_id_meta = book.get_metadata("cover")
+            cover_item = None
+            if cover_id_meta:
+                cover_item = book.get_item_with_id(cover_id_meta[0][0])
 
             if not cover_item:
                 # Fallback: search for common cover image names

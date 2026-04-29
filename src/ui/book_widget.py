@@ -9,7 +9,6 @@ gi.require_version("Adw", "1")
 
 from gi.repository import Gdk, Gtk, Pango  # noqa: E402
 
-from src.config import load_config  # noqa: E402
 from src.models.book import Book  # noqa: E402
 
 
@@ -20,6 +19,7 @@ class BookWidget(Gtk.Box):  # type: ignore
         self,
         book: Book,
         on_click_callback: Callable[[Book], None],
+        zoom_level: float = 1.0,
         on_right_click_callback: Optional[Callable[[Gtk.Widget, Book], None]] = None,
     ) -> None:
         """Initialize the BookWidget.
@@ -27,15 +27,15 @@ class BookWidget(Gtk.Box):  # type: ignore
         Args:
             book (Book): The book to display.
             on_click_callback (callable): Callback function when the book is clicked.
+            zoom_level (float): Zoom factor for the cover size.
             on_right_click_callback (callable): Callback function when the book is
                 right-clicked.
         """
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         self.on_right_click_callback = on_right_click_callback
 
-        config = load_config()
-        width = int(120 * config.get("zoom_level", 1.0))
-        height = int(180 * config.get("zoom_level", 1.0))
+        width = int(120 * zoom_level)
+        height = int(180 * zoom_level)
 
         self.set_halign(Gtk.Align.CENTER)
         self.set_valign(Gtk.Align.START)
