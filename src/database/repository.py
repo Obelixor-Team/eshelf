@@ -32,6 +32,7 @@ class BookRepository:
     def _init_db(self) -> None:
         """Create the categories and books tables if they don't exist."""
         with self._get_connection() as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS categories (

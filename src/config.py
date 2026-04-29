@@ -25,7 +25,38 @@ def load_config() -> dict[str, Any]:
 
     try:
         with open(CONFIG_FILE, "r") as f:
-            return {**DEFAULT_CONFIG, **json.load(f)}
+            loaded = json.load(f)
+            # Merge with defaults
+            config = {**DEFAULT_CONFIG, **loaded}
+
+            # Basic validation/coercion
+            if (
+                not isinstance(config["books_per_line"], int)
+                or config["books_per_line"] < 1
+            ):
+                config["books_per_line"] = DEFAULT_CONFIG["books_per_line"]
+
+            if (
+                not isinstance(config["zoom_level"], (int, float))
+                or config["zoom_level"] < 0.1
+            ):
+                config["zoom_level"] = DEFAULT_CONFIG["zoom_level"]
+
+            # Ensure string fields are strings
+            for key in [
+                "cache_dir",
+                "library_dir",
+                "last_category_identifier",
+                "last_sort_option",
+            ]:
+                if not isinstance(config[key], str):
+                    config[key] = DEFAULT_CONFIG[key]
+
+            # Ensure boolean fields are booleans
+            if not isinstance(config["sidebar_visible"], bool):
+                config["sidebar_visible"] = DEFAULT_CONFIG["sidebar_visible"]
+
+            return config
     except (json.JSONDecodeError, IOError):
         return DEFAULT_CONFIG.copy()
 
