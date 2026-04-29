@@ -210,7 +210,8 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         """Show a toast notification."""
 
         def _show() -> None:
-            toast = Adw.Toast(message)
+            toast = Adw.Toast()
+            toast.set_title(message)
             self.toast_overlay.add_toast(toast)
 
         GLib.idle_add(_show)
