@@ -1,8 +1,9 @@
 """Repository for managing book metadata in a SQLite database."""
 
 import sqlite3
+import threading
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, cast
 
 from src.models.book import Book
 from src.models.category import Category
@@ -18,13 +19,15 @@ class BookRepository:
             db_path (str): Path to the SQLite database file.
         """
         self.db_path = db_path
+        self._local = threading.local()
         self._init_db()
 
     def _get_connection(self) -> sqlite3.Connection:
         """Get a database connection with foreign keys enabled."""
-        conn = sqlite3.connect(self.db_path)
-        conn.execute("PRAGMA foreign_keys = ON")
-        return conn
+        if not hasattr(self._local, "conn"):
+            self._local.conn = sqlite3.connect(self.db_path)
+            self._local.conn.execute("PRAGMA foreign_keys = ON")
+        return cast(sqlite3.Connection, self._local.conn)
 
     def _init_db(self) -> None:
         """Create the categories and books tables if they don't exist."""
