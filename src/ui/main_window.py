@@ -16,7 +16,7 @@ from gi.repository import Adw, Gtk  # noqa: E402
 from src.controller.main_controller import MainController  # noqa: E402
 from src.models.book import Book  # noqa: E402
 from src.ui.shelf_grid import ShelfGrid  # noqa: E402
-from src.ui.sidebar import Sidebar  # noqa: E402
+from src.ui.sidebar import CategoryRow, Sidebar  # noqa: E402
 
 
 class MainWindow(Adw.ApplicationWindow):  # type: ignore
@@ -27,6 +27,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         super().__init__(**kwargs)
         self.set_title("eShelf")
         self.set_default_size(1000, 600)
+        self._is_initializing = False
 
         self.controller: Optional[MainController] = None
 
@@ -138,8 +139,54 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.controller = controller
         # Provide error callback to the controller
         self.controller.error_callback = self.show_error
-        self.refresh_grid()
-        self.refresh_sidebar()
+
+        # Restore persisted UI state
+        self._is_initializing = True
+        try:
+            config = load_config()
+
+            # Sidebar visibility
+            self.sidebar.set_visible(config.get("sidebar_visible", True))
+            if not self.sidebar.get_visible():
+                self.sidebar_toggle.set_icon_name("sidebar-show-symbolic")
+            else:
+                self.sidebar_toggle.set_icon_name("sidebar-collapse-symbolic")
+
+            # Sort option
+            last_sort = config.get("last_sort_option", "Title")
+            # Find index of last_sort in combo
+            model = self.sort_combo.get_model()
+            for i in range(len(model)):
+                if model[i][0] == last_sort:
+                    self.sort_combo.set_active(i)
+                    break
+
+            self.refresh_sidebar()
+
+            # Active category
+            last_cat_id = config.get("last_category_identifier", "all")
+            category_id = None
+            all_books = True
+
+            if last_cat_id == "all":
+                self.sidebar.select_category(None, True)
+            elif last_cat_id == "uncategorized":
+                self.sidebar.select_category(None, False)
+                all_books = False
+            else:
+                try:
+                    category_id = int(last_cat_id)
+                    self.sidebar.select_category(category_id, False)
+                    all_books = False
+                except ValueError:
+                    pass
+
+            # Final grid refresh with category and sort
+            self.refresh_grid(
+                category_id=category_id, all_books=all_books, sort_by=last_sort
+            )
+        finally:
+            self._is_initializing = False
 
     def show_error(self, message: str) -> None:
         """Show an error message dialog."""
@@ -160,6 +207,25 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             self.toast_overlay.add_toast(toast)
 
         GLib.idle_add(_show)
+
+    def save_ui_state(self) -> None:
+        """Save current UI state to configuration."""
+        config = load_config()
+
+        # Sidebar visibility
+        config["sidebar_visible"] = self.sidebar.get_visible()
+
+        # Sort option
+        config["last_sort_option"] = self.sort_combo.get_active_text() or "Title"
+
+        # Active category
+        selected_row = self.sidebar.list_box.get_selected_row()
+        if selected_row and isinstance(selected_row, CategoryRow):
+            config["last_category_identifier"] = selected_row.identifier
+        else:
+            config["last_category_identifier"] = "all"
+
+        save_config(config)
 
     def refresh_sidebar(self) -> None:
         """Update the sidebar with current categories."""
@@ -192,7 +258,10 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
     def on_category_selected(self, category_id: Optional[int], all_books: bool) -> None:
         """Handle category selection from sidebar."""
+        if self._is_initializing:
+            return
         self.refresh_grid(category_id, all_books)
+        self.save_ui_state()
 
     def on_category_created(self, name: str) -> None:
         """Handle new category creation."""
@@ -215,6 +284,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         else:
             self.sidebar.set_visible(True)
             self.sidebar_toggle.set_icon_name("sidebar-collapse-symbolic")
+        self.save_ui_state()
 
     def on_import_file_clicked(self, item: Gtk.Button) -> None:
         """Handle import file action."""
@@ -323,6 +393,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         """Handle sort option changes."""
         sort_option = combo.get_active_text()
         self.refresh_grid(sort_by=sort_option)
+        self.save_ui_state()
 
     def on_cleanup_clicked(self, button: Gtk.Button) -> None:
         """Handle the cleanup button click."""
