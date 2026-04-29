@@ -1,7 +1,7 @@
 """Main window for the eShelf application."""
 
 import threading
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 import gi
 from gi.repository import GLib
@@ -355,12 +355,12 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
                     def worker() -> None:
                         try:
-                            added, updated = controller.import_folder(path)
+                            added, updated, failed = controller.import_folder(path)
                             GLib.idle_add(self.refresh_grid)
                             GLib.idle_add(
                                 self.show_toast,
                                 f"Folder import complete: {added} added, "
-                                f"{updated} updated.",
+                                f"{updated} updated, {len(failed)} failed.",
                             )
                         except Exception as e:
                             GLib.idle_add(
@@ -389,10 +389,10 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
             controller = self.controller
             if controller:
-                added, updated = controller.scan_library(
+                added, updated, failed = controller.scan_library(
                     progress_callback=progress_update
                 )
-                GLib.idle_add(self.on_scan_finished, added, updated)
+                GLib.idle_add(self.on_scan_finished, added, updated, failed)
 
         thread = threading.Thread(target=scan_worker, daemon=True)
         thread.start()
@@ -405,12 +405,18 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.progress_bar.set_show_text(True)
         return False
 
-    def on_scan_finished(self, added: int, updated: int) -> bool:
+    def on_scan_finished(self, added: int, updated: int, failed: List[str]) -> bool:
         """Handle completion of the scan process."""
         self.scan_button.set_sensitive(True)
         self.progress_bar.set_visible(False)
         self.refresh_grid()
-        self.show_toast(f"Scan complete: {added} added, {updated} updated.")
+        if failed:
+            msg = f"Scan complete: {added} added, {updated} updated"
+            if failed:
+                msg += f", {len(failed)} failed"
+            self.show_toast(msg)
+        else:
+            self.show_toast(f"Scan complete: {added} added, {updated} updated.")
         return False
 
     def on_search_changed(self, entry: Gtk.SearchEntry) -> None:
@@ -450,19 +456,11 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         """Handle the settings button click."""
         config = load_config()
 
-        dialog = Adw.Dialog(title="Settings")
-
-        # Main container for the dialog content
-        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        dialog.set_child(main_box)
-
-        # Preferences content in a scrolled window
-        scrolled = Gtk.ScrolledWindow()
-        scrolled.set_vexpand(True)
-        main_box.append(scrolled)
+        dialog = Adw.PreferencesDialog()
+        dialog.set_title("Settings")
 
         page = Adw.PreferencesPage()
-        scrolled.set_child(page)
+        dialog.add(page)
 
         group = Adw.PreferencesGroup(title="General")
         page.add(group)
@@ -552,7 +550,11 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         button_box.set_margin_bottom(12)
         button_box.set_margin_end(12)
         button_box.set_margin_start(12)
-        main_box.append(button_box)
+
+        # Add button box to a preferences group to fit in the preferences page
+        button_group = Adw.PreferencesGroup()
+        button_group.add(button_box)
+        page.add(button_group)
 
         def on_save_clicked(button: Gtk.Button) -> None:
             try:

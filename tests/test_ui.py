@@ -62,7 +62,7 @@ def test_main_window_event_handlers() -> None:
     ):
         win = MainWindow()
         controller = MagicMock()
-        controller.scan_library.return_value = (1, 1)
+        controller.scan_library.return_value = (1, 1, [])
         controller.cleanup_library.return_value = 1
         win.controller = controller
 
@@ -152,7 +152,7 @@ def test_main_window_helper_methods() -> None:
         win.progress_bar.set_fraction.assert_called_with(0.5)
 
         # Test on_scan_finished
-        win.on_scan_finished(1, 1)
+        win.on_scan_finished(1, 1, [])
         win.scan_button.set_sensitive.assert_called_with(True)
         win.progress_bar.set_visible.assert_called_with(False)
         win.refresh_grid()  # Should not crash
@@ -178,7 +178,7 @@ def test_main_window_settings_clicked() -> None:
         patch.object(MainWindow, "set_content"),
     ):
         win = MainWindow()
-        with patch("src.ui.main_window.Adw.Dialog") as mock_dialog:
+        with patch("src.ui.main_window.Adw.PreferencesDialog") as mock_dialog:
             win.on_settings_clicked(MagicMock())
             mock_dialog.assert_called_once()
 

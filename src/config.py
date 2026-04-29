@@ -4,13 +4,30 @@ import json
 import os
 from typing import Any
 
-CONFIG_FILE = os.path.expanduser("~/.config/eshelf/config.json")
+try:
+    from platformdirs import user_cache_dir, user_config_dir, user_data_dir
+except ImportError:
+    # Fallback for platforms where platformdirs is not available
+    def user_config_dir(appname: str, *args, **kwargs) -> str:
+        """Fallback for user_config_dir when platformdirs is not available."""
+        return os.path.expanduser(f"~/.config/{appname}")
+    
+    def user_cache_dir(appname: str, *args, **kwargs) -> str:
+        """Fallback for user_cache_dir when platformdirs is not available."""
+        return os.path.expanduser(f"~/.cache/{appname}")
+    
+    def user_data_dir(appname: str, *args, **kwargs) -> str:
+        """Fallback for user_data_dir when platformdirs is not available."""
+        return os.path.expanduser(f"~/.local/share/{appname}")
+
+
+CONFIG_FILE = os.path.join(user_config_dir("eshelf"), "config.json")
 
 DEFAULT_CONFIG = {
     "books_per_line": 6,
     "zoom_level": 1.0,
-    "cache_dir": os.path.join(os.path.expanduser("~"), ".cache", "eshelf", "covers"),
-    "library_dir": os.path.join(os.path.expanduser("~"), "Books"),
+    "cache_dir": os.path.join(user_cache_dir("eshelf"), "covers"),
+    "library_dir": os.path.join(user_data_dir("eshelf"), "Books"),
     "last_category_identifier": "all",
     "sidebar_visible": True,
     "last_sort_option": "Title",

@@ -8,6 +8,7 @@ dependencies = [
     "ebooklib",
     "PyGObject",
     "pymupdf",
+    "platformdirs",
 ]
 
 [tool.commitizen]

@@ -2,11 +2,53 @@
 
 import sqlite3
 import threading
+import time
 from datetime import datetime
-from typing import Iterator, List, Optional, cast
+from typing import Callable, Iterator, List, Optional, ParamSpec, TypeVar, cast
 
 from src.models.book import Book
 from src.models.category import Category
+
+# Type variables for generic retry decorator
+P = ParamSpec("P")
+T = TypeVar("T")
+
+
+def retry_on_locked(
+    max_retries: int = 3, delay: float = 0.1
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
+    """Decorator to retry database operations on locked database errors.
+
+    Args:
+        max_retries: Maximum number of retry attempts
+        delay: Delay between retries in seconds
+
+    Returns:
+        Decorated function that retries on SQLite locked errors
+    """
+
+    def decorator(func: Callable[P, T]) -> Callable[P, T]:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            last_exception: Optional[Exception] = None
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except sqlite3.OperationalError as e:
+                    if "database is locked" in str(e):
+                        last_exception = e
+                        if attempt < max_retries - 1:  # Don't sleep on last attempt
+                            time.sleep(delay * (2**attempt))  # Exponential backoff
+                    else:
+                        raise  # Re-raise if it's not a lock error
+            # If we exhausted retries, raise the last exception
+            if last_exception:
+                raise last_exception
+            # This should never happen, but just in case
+            raise RuntimeError("Unexpected state in retry logic")
+
+        return wrapper
+
+    return decorator
 
 
 class BookRepository:
@@ -63,6 +105,7 @@ class BookRepository:
 
             conn.commit()
 
+    @retry_on_locked()
     def add_book(self, book: Book) -> None:
         """Add or update a book in the database."""
         with self._get_connection() as conn:
@@ -133,12 +176,14 @@ class BookRepository:
                 )
             return None
 
+    @retry_on_locked()
     def remove_book(self, path: str) -> None:
         """Remove a book from the database."""
         with self._get_connection() as conn:
             conn.execute("DELETE FROM books WHERE path = ?", (path,))
             conn.commit()
 
+    @retry_on_locked()
     def update_book_category(self, path: str, category_id: Optional[int]) -> None:
         """Update the category of a book."""
         with self._get_connection() as conn:
@@ -148,6 +193,7 @@ class BookRepository:
             )
             conn.commit()
 
+    @retry_on_locked()
     def update_book_metadata(self, path: str, title: str, author: str) -> None:
         """Update the title and author of a book."""
         with self._get_connection() as conn:

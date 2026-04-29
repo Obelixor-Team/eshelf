@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 from src.database.repository import BookRepository
 from src.models.book import Book
@@ -38,7 +38,7 @@ class BookScanner:
         self,
         directory: str,
         progress_callback: Optional[Callable[[int, int], None]] = None,
-    ) -> Tuple[int, int]:
+    ) -> Tuple[int, int, List[str]]:
         """Scan a directory for books and update the repository.
 
         Args:
@@ -46,10 +46,12 @@ class BookScanner:
             progress_callback (callable, optional): Callback for progress updates.
 
         Returns:
-            Tuple[int, int]: A tuple containing (added_count, updated_count).
+            Tuple[int, int, List[str]]:
+                A tuple containing (added_count, updated_count, failed_files).
         """
         added = 0
         updated = 0
+        failed_files: List[str] = []
 
         dir_path = Path(directory)
         if not dir_path.is_dir():
@@ -87,6 +89,7 @@ class BookScanner:
                     cover_path = self.extractor.extract(file_path)
             except ExtractionError as e:
                 logger.error(f"Skipping book {file_path} due to extraction error: {e}")
+                failed_files.append(file_path)
                 continue
 
             if existing_book:
@@ -116,7 +119,7 @@ class BookScanner:
                 self.repository.add_book(book)
                 added += 1
 
-        return added, updated
+        return added, updated, failed_files
 
     def cleanup_missing(self, directory: str) -> int:
         """Remove books from the repository that no longer exist on disk.

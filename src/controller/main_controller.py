@@ -3,7 +3,7 @@
 import logging
 import subprocess
 from pathlib import Path
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Tuple
 
 from src.database.repository import BookRepository
 from src.models.book import Book
@@ -87,17 +87,31 @@ class MainController:
 
     def scan_library(
         self, progress_callback: Optional[Callable[[int, int], None]] = None
-    ) -> tuple[int, int]:
-        """Scan the library for books and return (added, updated) counts."""
-        return self.scanner.scan(self.library_dir, progress_callback=progress_callback)
+    ) -> Tuple[int, int, List[str]]:
+        """Scan the library for books and return (added, updated, failed_files) counts."""
+
+
+        added, updated, failed = self.scanner.scan(
+            self.library_dir, progress_callback=progress_callback
+        )
+        if self.error_callback:
+            for file_path in failed:
+                self.error_callback(f"Failed to process {file_path}: {file_path}")
+        return added, updated, failed
 
     def import_folder(
         self,
         folder_path: str,
         progress_callback: Optional[Callable[[int, int], None]] = None,
-    ) -> tuple[int, int]:
+    ) -> Tuple[int, int, List[str]]:
         """Import books from a specific folder."""
-        return self.scanner.scan(folder_path, progress_callback=progress_callback)
+        added, updated, failed = self.scanner.scan(
+            folder_path, progress_callback=progress_callback
+        )
+        if self.error_callback:
+            for file_path in failed:
+                self.error_callback(f"Failed to process {file_path}: {file_path}")
+        return added, updated, failed
 
     def import_file(self, file_path: str) -> bool:
         """Import a single book file."""

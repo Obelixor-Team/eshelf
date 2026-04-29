@@ -47,12 +47,13 @@ def test_controller_scan_library(controller_env: tuple[MainController, str]) -> 
     """Test scanning library via controller."""
     controller, lib_dir = controller_env
     mock_scanner = MagicMock()
-    mock_scanner.scan.return_value = (1, 0)
+    mock_scanner.scan.return_value = (1, 0, [])
     controller.scanner = mock_scanner
 
-    added, updated = controller.scan_library()
+    added, updated, failed = controller.scan_library()
     assert added == 1
     assert updated == 0
+    assert len(failed) == 0
     mock_scanner.scan.assert_called_once_with(lib_dir, progress_callback=None)
 
 
@@ -84,12 +85,13 @@ def test_controller_import_folder(controller_env: tuple[MainController, str]) ->
     """Test importing a folder via controller."""
     controller, _ = controller_env
     mock_scanner = MagicMock()
-    mock_scanner.scan.return_value = (2, 1)
+    mock_scanner.scan.return_value = (2, 1, [])
     controller.scanner = mock_scanner
 
-    added, updated = controller.import_folder("/path/to/folder")
+    added, updated, failed = controller.import_folder("/path/to/folder")
     assert added == 2
     assert updated == 1
+    assert len(failed) == 0
     mock_scanner.scan.assert_called_once_with("/path/to/folder", progress_callback=None)
 
 
