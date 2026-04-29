@@ -29,9 +29,9 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
         self.controller: Optional[MainController] = None
 
-        # Use NavigationSplitView for sidebar and content
-        self.split_view = Adw.NavigationSplitView()
-        self.set_content(self.split_view)
+        # Main layout
+        self.main_layout = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.set_content(self.main_layout)
 
         # Sidebar setup
         self.sidebar = Sidebar(
@@ -39,11 +39,13 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             on_category_created=self.on_category_created,
             on_category_deleted=self.on_category_deleted,
         )
-        self.sidebar_page = Adw.NavigationPage.new(self.sidebar, "Bookshelves")
-        self.split_view.set_sidebar(self.sidebar_page)
+        self.sidebar.set_size_request(250, -1)
+        self.main_layout.append(self.sidebar)
 
         # Content setup
         self.toolbar_view = Adw.ToolbarView()
+        self.toolbar_view.set_hexpand(True)
+        self.main_layout.append(self.toolbar_view)
 
         # Header bar
         self.header_bar = Adw.HeaderBar()
@@ -112,9 +114,6 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.grid = ShelfGrid(self.on_book_selected, self.on_book_right_clicked)
         self.scrolled_window.set_child(self.grid)
 
-        self.content_page = Adw.NavigationPage.new(self.toolbar_view, "Books")
-        self.split_view.set_content(self.content_page)
-
     def set_controller(self, controller: MainController) -> None:
         """Inject the controller and refresh the view."""
         self.controller = controller
@@ -158,13 +157,12 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
     def on_sidebar_toggle_clicked(self, button: Gtk.Button) -> None:
         """Toggle sidebar visibility."""
-        # Use get_collapsed() and set_collapsed() for Adw.NavigationSplitView
-        if self.split_view.get_collapsed():
-            self.split_view.set_collapsed(False)
-            self.sidebar_toggle.set_icon_name("sidebar-hide-symbolic")
-        else:
-            self.split_view.set_collapsed(True)
+        if self.sidebar.get_visible():
+            self.sidebar.set_visible(False)
             self.sidebar_toggle.set_icon_name("sidebar-show-symbolic")
+        else:
+            self.sidebar.set_visible(True)
+            self.sidebar_toggle.set_icon_name("sidebar-collapse-symbolic")
 
     def on_import_file_clicked(self, item: Gtk.Button) -> None:
         """Handle import file action."""
