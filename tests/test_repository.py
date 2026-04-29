@@ -124,3 +124,32 @@ def test_repository_category_management() -> None:
         # Books should become uncategorized (due to ON DELETE SET NULL)
         uncat_after_del = repo.get_books_by_category(None)
         assert len(uncat_after_del) == 2
+
+
+def test_repository_update_book_preserves_category() -> None:
+    """Test that updating a book preserves its category if not provided."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = os.path.join(tmpdir, "test.db")
+        repo = BookRepository(db_path)
+
+        cat_id = repo.create_category("Tech")
+        book = Book(
+            path="/path/to/book.pdf",
+            title="Original",
+            author="Author",
+            category_id=cat_id,
+        )
+        repo.add_book(book)
+
+        # Update book without providing category_id (it will be None)
+        updated_book = Book(
+            path="/path/to/book.pdf",
+            title="Updated",
+            author="Author",
+        )
+        repo.add_book(updated_book)
+
+        retrieved = repo.get_book_by_path("/path/to/book.pdf")
+        assert retrieved is not None
+        assert retrieved.title == "Updated"
+        assert retrieved.category_id == cat_id

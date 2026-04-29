@@ -58,6 +58,7 @@ def test_main_window_event_handlers() -> None:
         patch.object(MainWindow, "set_title"),
         patch.object(MainWindow, "set_default_size"),
         patch.object(MainWindow, "set_content"),
+        patch("threading.Thread") as mock_thread,
     ):
         win = MainWindow()
         controller = MagicMock()
@@ -67,7 +68,11 @@ def test_main_window_event_handlers() -> None:
 
         # Test scan
         win.on_scan_clicked(MagicMock())
-        # Scan is now asynchronous, so we don't assert call directly
+        mock_thread.assert_called_once()
+        # Execute the scan worker synchronously for testing
+        scan_worker = mock_thread.call_args[1]["target"]
+        scan_worker()
+        controller.scan_library.assert_called_once()
 
         # Test cleanup
         win.on_cleanup_clicked(MagicMock())
@@ -77,6 +82,22 @@ def test_main_window_event_handlers() -> None:
         book = Book(path="1", title="T1", author="A1")
         win.on_book_selected(book)
         controller.open_book.assert_called_once_with(book)
+
+        # Test category events
+        win.on_category_selected(1, False)
+        controller.get_books.assert_called_with(1)
+
+        win.on_category_created("New")
+        controller.create_category.assert_called_once_with("New")
+
+        win.on_category_deleted(1)
+        controller.delete_category.assert_called_once_with(1)
+
+        # Test sidebar toggle
+        win.sidebar = MagicMock()
+        win.sidebar.get_visible.return_value = True
+        win.on_sidebar_toggle_clicked(MagicMock())
+        win.sidebar.set_visible.assert_called_with(False)
 
 
 def test_main_window_import_handlers() -> None:
@@ -139,6 +160,11 @@ def test_main_window_helper_methods() -> None:
         win.controller.get_books.assert_called()
         win.grid.update_books.assert_called()
 
+        # Test show_error
+        with patch("src.ui.main_window.Adw.MessageDialog") as mock_dialog:
+            win.show_error("Test Error")
+            mock_dialog.assert_called_once()
+
 
 def test_main_window_settings_clicked() -> None:
     """Test that opening settings creates a dialog."""
@@ -149,6 +175,6 @@ def test_main_window_settings_clicked() -> None:
         patch.object(MainWindow, "set_content"),
     ):
         win = MainWindow()
-        with patch("src.ui.main_window.Gtk.Window") as mock_dialog:
+        with patch("src.ui.main_window.Adw.Dialog") as mock_dialog:
             win.on_settings_clicked(MagicMock())
             mock_dialog.assert_called_once()

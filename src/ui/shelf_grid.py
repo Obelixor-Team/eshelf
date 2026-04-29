@@ -1,6 +1,6 @@
 """UI component for the book grid."""
 
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 import gi  # noqa: E402
 
@@ -28,6 +28,7 @@ class ShelfGrid(Gtk.Grid):  # type: ignore
         super().__init__()
         self.on_book_selected = on_book_selected_callback
         self.on_book_right_clicked = on_book_right_clicked_callback
+        self._config = load_config()
         self.set_column_spacing(24)
         self.set_row_spacing(24)
         self.set_halign(Gtk.Align.CENTER)
@@ -37,6 +38,10 @@ class ShelfGrid(Gtk.Grid):  # type: ignore
         self.set_margin_start(18)
         self.set_margin_end(18)
 
+    def update_config(self, config: dict[str, Any]) -> None:
+        """Update the cached configuration."""
+        self._config = config
+
     def update_books(self, books: list[Book]) -> None:
         """Refresh the grid with a new list of books."""
         # Remove existing children
@@ -45,10 +50,9 @@ class ShelfGrid(Gtk.Grid):  # type: ignore
             self.remove(child)
             child = self.get_first_child()
 
-        # Get column count and zoom from config
-        config = load_config()
-        cols = config.get("books_per_line", 4)
-        zoom_level = config.get("zoom_level", 1.0)
+        # Use cached config for column count and zoom
+        cols = self._config.get("books_per_line", 4)
+        zoom_level = self._config.get("zoom_level", 1.0)
 
         # Explicit grid with dynamic columns
         for i, book in enumerate(books):

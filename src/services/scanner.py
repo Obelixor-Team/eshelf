@@ -75,11 +75,15 @@ class BookScanner:
                 cover_path = self.extractor.extract(file_path)
 
             if existing_book:
-                if existing_book.cover_path != cover_path:
+                if (
+                    existing_book.title != title
+                    or existing_book.author != author
+                    or existing_book.cover_path != cover_path
+                ):
                     book = Book(
                         path=file_path,
-                        title=existing_book.title,
-                        author=existing_book.author,
+                        title=title,
+                        author=author,
                         cover_path=cover_path,
                         category_id=existing_book.category_id,
                     )
@@ -110,7 +114,7 @@ class BookScanner:
         all_books = self.repository.get_all_books()
 
         for book in all_books:
-            if not Path(book.path).exists():
+            if book.path.startswith(directory) and not Path(book.path).exists():
                 self.repository.remove_book(book.path)
                 removed += 1
 

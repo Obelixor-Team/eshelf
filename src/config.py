@@ -27,6 +27,19 @@ def load_config() -> dict[str, Any]:
 
 def save_config(config: dict[str, Any]) -> None:
     """Save configuration to file."""
+    # Validate configuration values
+    books_per_line = config.get("books_per_line")
+    if not isinstance(books_per_line, int) or books_per_line < 1:
+        raise ValueError("books_per_line must be a positive integer")
+
+    zoom_level = config.get("zoom_level")
+    if not isinstance(zoom_level, (int, float)) or zoom_level < 0.1:
+        raise ValueError("zoom_level must be a positive number >= 0.1")
+
+    cache_dir = config.get("cache_dir")
+    if not isinstance(cache_dir, str):
+        raise ValueError("cache_dir must be a string")
+
     os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
     with open(CONFIG_FILE, "w") as f:
         json.dump(config, f, indent=4)

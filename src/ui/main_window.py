@@ -117,8 +117,21 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
     def set_controller(self, controller: MainController) -> None:
         """Inject the controller and refresh the view."""
         self.controller = controller
+        # Provide error callback to the controller
+        self.controller.error_callback = self.show_error
         self.refresh_grid()
         self.refresh_sidebar()
+
+    def show_error(self, message: str) -> None:
+        """Show an error message dialog."""
+        dialog = Adw.MessageDialog(
+            transient_for=self,
+            heading="Error",
+            body=message,
+        )
+        dialog.add_response("ok", "OK")
+        dialog.set_default_response("ok")
+        dialog.present()
 
     def refresh_sidebar(self) -> None:
         """Update the sidebar with current categories."""
@@ -274,56 +287,55 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         """Handle the settings button click."""
         config = load_config()
 
-        dialog = Gtk.Window(title="Settings", transient_for=self, modal=True)
+        dialog = Adw.Dialog(title="Settings", modal=True)
+        dialog.set_transient_for(self)
         dialog.set_default_size(400, 300)
 
+        # Main container for the dialog content
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         dialog.set_child(main_box)
 
-        content_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        content_area.set_margin_top(12)
-        content_area.set_margin_bottom(12)
-        content_area.set_margin_start(12)
-        content_area.set_margin_end(12)
-        main_box.append(content_area)
+        # Preferences content in a scrolled window
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_vexpand(True)
+        main_box.append(scrolled)
 
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        content_area.append(box)
+        page = Adw.PreferencesPage()
+        scrolled.set_child(page)
 
-        def create_setting_row(label_text: str, key: str) -> Gtk.SpinButton:
-            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-            label = Gtk.Label(label=label_text, xalign=0)
-            adjustment = Gtk.Adjustment(
-                value=config.get(key, 0), lower=1, upper=10, step_increment=1
+        group = Adw.PreferencesGroup(title="General")
+        page.add(group)
+
+        # Books per line
+        books_per_line_row = Adw.ActionRow(title="Books per line")
+        books_per_line_spin = Gtk.SpinButton(
+            adjustment=Gtk.Adjustment(
+                value=config.get("books_per_line", 6),
+                lower=1,
+                upper=10,
+                step_increment=1,
             )
-            spin = Gtk.SpinButton(adjustment=adjustment)
-            row.append(label)
-            row.append(spin)
-            box.append(row)
-            return spin
-
-        books_per_line_spin: Gtk.SpinButton = create_setting_row(
-            "Books per line:", "books_per_line"
         )
+        books_per_line_row.add_suffix(books_per_line_spin)
+        group.add(books_per_line_row)
 
-        # Zoom level setting
-        zoom_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        zoom_label = Gtk.Label(label="Cover zoom:", xalign=0)
-        zoom_adjustment = Gtk.Adjustment(
-            value=config.get("zoom_level", 1.0),
-            lower=0.5,
-            upper=3.0,
-            step_increment=0.1,
+        # Zoom level
+        zoom_row = Adw.ActionRow(title="Cover zoom")
+        zoom_spin = Gtk.SpinButton(
+            adjustment=Gtk.Adjustment(
+                value=config.get("zoom_level", 1.0),
+                lower=0.5,
+                upper=3.0,
+                step_increment=0.1,
+            ),
+            digits=1,
         )
+        zoom_row.add_suffix(zoom_spin)
+        group.add(zoom_row)
 
-        zoom_spin: Gtk.SpinButton = Gtk.SpinButton(adjustment=zoom_adjustment, digits=1)
-        zoom_row.append(zoom_label)
-        zoom_row.append(zoom_spin)
-        box.append(zoom_row)
-
-        # Cache directory setting
-        cache_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        cache_label = Gtk.Label(label="Cache directory:", xalign=0)
+        # Cache directory
+        cache_row = Adw.ActionRow(title="Cache directory")
+        cache_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         cache_entry = Gtk.Entry(text=config.get("cache_dir", ""))
         cache_entry.set_hexpand(True)
 
@@ -336,36 +348,41 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                     if folder:
                         cache_entry.set_text(folder.get_path())
                 except Exception as e:
-                    print(f"Error selecting folder: {e}")
+                    self.show_error(f"Error selecting folder: {e}")
 
             folder_dialog.select_folder(self, on_folder_response)
 
-        browse_button = Gtk.Button(label="Browse")
+        browse_button = Gtk.Button(icon_name="folder-open-symbolic")
         browse_button.connect("clicked", on_browse_clicked)
-
-        cache_row.append(cache_label)
-        cache_row.append(cache_entry)
-        cache_row.append(browse_button)
-        box.append(cache_row)
+        cache_box.append(cache_entry)
+        cache_box.append(browse_button)
+        cache_row.add_suffix(cache_box)
+        group.add(cache_row)
 
         # Buttons
         button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         button_box.set_halign(Gtk.Align.END)
         button_box.set_margin_bottom(12)
         button_box.set_margin_end(12)
+        button_box.set_margin_start(12)
         main_box.append(button_box)
 
         def on_save_clicked(button: Gtk.Button) -> None:
-            new_config = {
-                "books_per_line": int(books_per_line_spin.get_value()),
-                "zoom_level": float(zoom_spin.get_value()),
-                "cache_dir": cache_entry.get_text(),
-            }
-            save_config(new_config)
-            self.refresh_grid()
-            dialog.destroy()
+            try:
+                new_config = {
+                    "books_per_line": int(books_per_line_spin.get_value()),
+                    "zoom_level": float(zoom_spin.get_value()),
+                    "cache_dir": cache_entry.get_text(),
+                }
+                save_config(new_config)
+                self.grid.update_config(new_config)
+                self.refresh_grid()
+                dialog.destroy()
+            except ValueError as e:
+                self.show_error(str(e))
 
         save_btn = Gtk.Button(label="Save")
+        save_btn.add_css_class("suggested-action")
         save_btn.connect("clicked", on_save_clicked)
         button_box.append(save_btn)
 
@@ -398,20 +415,29 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
         # "Uncategorized" option
         uncat_btn = Gtk.Button(label="Move to Uncategorized")
-        uncat_btn.connect("clicked", lambda _: self.move_book(book, None))
+        uncat_btn.connect("clicked", lambda _: self.move_book(book, None, popover))
         box.append(uncat_btn)
 
         # Category options
         categories = self.controller.get_categories()
         for cat in categories:
             btn = Gtk.Button(label=f"Move to {cat.name}")
-            btn.connect("clicked", lambda _, c_id=cat.id: self.move_book(book, c_id))
+            btn.connect(
+                "clicked", lambda _, c_id=cat.id: self.move_book(book, c_id, popover)
+            )
             box.append(btn)
 
         popover.popup()
 
-    def move_book(self, book: Book, category_id: Optional[int]) -> None:
+    def move_book(
+        self,
+        book: Book,
+        category_id: Optional[int],
+        popover: Optional[Gtk.Popover] = None,
+    ) -> None:
         """Move a book to a category and refresh view."""
         if self.controller:
             self.controller.move_book_to_category(book.path, category_id)
             self.refresh_grid()
+            if popover:
+                popover.popdown()

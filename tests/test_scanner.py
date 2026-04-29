@@ -63,19 +63,27 @@ def test_scanner_updates_existing_books() -> None:
 
 
 def test_scanner_cleanup_missing() -> None:
-    """Test that cleanup_missing removes non-existent files."""
+    """Test cleanup_missing removes non-existent files only within directory."""
     mock_repo = MagicMock(spec=BookRepository)
-    # Return one existing and one missing book
-    with tempfile.NamedTemporaryFile() as tmp_file:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Book 1: Exists in tmpdir
+        book1_path = Path(tmpdir) / "exists.pdf"
+        book1_path.touch()
+        # Book 2: Missing in tmpdir
+        book2_path = Path(tmpdir) / "gone.pdf"
+        # Book 3: Missing but NOT in tmpdir
+        book3_path = Path("/non/existent/dir/gone.pdf")
+
         mock_repo.get_all_books.return_value = [
-            Book(path=tmp_file.name, title="Exist", author="A"),
-            Book(path="/non/existent/path", title="Gone", author="B"),
+            Book(path=str(book1_path.absolute()), title="Exist", author="A"),
+            Book(path=str(book2_path.absolute()), title="Gone1", author="B"),
+            Book(path=str(book3_path.absolute()), title="Gone2", author="C"),
         ]
 
         mock_extractor = MagicMock(spec=CoverExtractor)
         scanner = BookScanner(mock_repo, mock_extractor)
 
-        removed = scanner.cleanup_missing("/tmp")
+        removed = scanner.cleanup_missing(str(Path(tmpdir).absolute()))
 
         assert removed == 1
-        mock_repo.remove_book.assert_called_once_with("/non/existent/path")
+        mock_repo.remove_book.assert_called_once_with(str(book2_path.absolute()))

@@ -11,6 +11,15 @@ from gi.repository import Adw, Gtk  # noqa: E402
 from src.models.category import Category  # noqa: E402
 
 
+class CategoryRow(Gtk.ListBoxRow):  # type: ignore
+    """Custom ListBoxRow that stores a category identifier."""
+
+    def __init__(self, identifier: str):
+        """Initialize the CategoryRow."""
+        super().__init__()
+        self.identifier = identifier
+
+
 class Sidebar(Adw.Bin):  # type: ignore
     """Sidebar for navigating book categories."""
 
@@ -101,8 +110,8 @@ class Sidebar(Adw.Bin):  # type: ignore
 
             self.list_box.append(row)
 
-    def _create_row(self, label_text: str, identifier: str) -> Gtk.ListBoxRow:
-        row = Gtk.ListBoxRow()
+    def _create_row(self, label_text: str, identifier: str) -> CategoryRow:
+        row = CategoryRow(identifier)
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         box.set_margin_start(12)
         box.set_margin_end(12)
@@ -114,18 +123,16 @@ class Sidebar(Adw.Bin):  # type: ignore
         box.append(label)
 
         row.set_child(box)
-        # Store identifier in the row object
-        setattr(row, "identifier", identifier)
         return row
 
     def on_row_selected(
-        self, list_box: Gtk.ListBox, row: Optional[Gtk.ListBoxRow]
+        self, list_box: Gtk.ListBox, row: Optional[CategoryRow]
     ) -> None:
         """Handle row selection change."""
         if not row:
             return
 
-        identifier = getattr(row, "identifier", None)
+        identifier = row.identifier
         if identifier == "all":
             self.on_category_selected(None, True)
         elif identifier == "uncategorized":

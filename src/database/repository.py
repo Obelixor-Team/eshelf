@@ -19,10 +19,15 @@ class BookRepository:
         self.db_path = db_path
         self._init_db()
 
+    def _get_connection(self) -> sqlite3.Connection:
+        """Get a database connection with foreign keys enabled."""
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("PRAGMA foreign_keys = ON")
+        return conn
+
     def _init_db(self) -> None:
         """Create the categories and books tables if they don't exist."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("PRAGMA foreign_keys = ON")
+        with self._get_connection() as conn:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS categories (
@@ -48,13 +53,16 @@ class BookRepository:
 
     def add_book(self, book: Book) -> None:
         """Add or update a book in the database."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("PRAGMA foreign_keys = ON")
+        with self._get_connection() as conn:
             conn.execute(
                 """
-                INSERT OR REPLACE INTO books 
-                (path, title, author, cover_path, category_id)
+                INSERT INTO books (path, title, author, cover_path, category_id)
                 VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(path) DO UPDATE SET
+                    title = excluded.title,
+                    author = excluded.author,
+                    cover_path = excluded.cover_path,
+                    category_id = COALESCE(excluded.category_id, books.category_id)
                 """,
                 (book.path, book.title, book.author, book.cover_path, book.category_id),
             )
@@ -62,8 +70,7 @@ class BookRepository:
 
     def get_all_books(self) -> List[Book]:
         """Retrieve all books from the database."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("PRAGMA foreign_keys = ON")
+        with self._get_connection() as conn:
             query = "SELECT path, title, author, cover_path, category_id FROM books"
             cursor = conn.execute(query)
             return [
@@ -79,8 +86,7 @@ class BookRepository:
 
     def get_book_by_path(self, path: str) -> Optional[Book]:
         """Find a book by its file path."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("PRAGMA foreign_keys = ON")
+        with self._get_connection() as conn:
             query = (
                 "SELECT path, title, author, cover_path, category_id "
                 "FROM books WHERE path = ?"
@@ -99,15 +105,13 @@ class BookRepository:
 
     def remove_book(self, path: str) -> None:
         """Remove a book from the database."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("PRAGMA foreign_keys = ON")
+        with self._get_connection() as conn:
             conn.execute("DELETE FROM books WHERE path = ?", (path,))
             conn.commit()
 
     def update_book_category(self, path: str, category_id: Optional[int]) -> None:
         """Update the category of a book."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("PRAGMA foreign_keys = ON")
+        with self._get_connection() as conn:
             conn.execute(
                 "UPDATE books SET category_id = ? WHERE path = ?",
                 (category_id, path),
@@ -116,8 +120,7 @@ class BookRepository:
 
     def create_category(self, name: str) -> int:
         """Create a new category and return its ID."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("PRAGMA foreign_keys = ON")
+        with self._get_connection() as conn:
             cursor = conn.execute(
                 "INSERT INTO categories (name) VALUES (?)",
                 (name,),
@@ -130,22 +133,19 @@ class BookRepository:
 
     def delete_category(self, category_id: int) -> None:
         """Delete a category."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("PRAGMA foreign_keys = ON")
+        with self._get_connection() as conn:
             conn.execute("DELETE FROM categories WHERE id = ?", (category_id,))
             conn.commit()
 
     def get_all_categories(self) -> List[Category]:
         """Retrieve all categories from the database."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("PRAGMA foreign_keys = ON")
+        with self._get_connection() as conn:
             cursor = conn.execute("SELECT id, name FROM categories ORDER BY name")
             return [Category(id=row[0], name=row[1]) for row in cursor.fetchall()]
 
     def get_books_by_category(self, category_id: Optional[int]) -> List[Book]:
         """Retrieve books belonging to a specific category."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("PRAGMA foreign_keys = ON")
+        with self._get_connection() as conn:
             if category_id is None:
                 query = (
                     "SELECT path, title, author, cover_path, category_id "
@@ -171,7 +171,6 @@ class BookRepository:
 
     def clear(self) -> None:
         """Remove all books from the database."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("PRAGMA foreign_keys = ON")
+        with self._get_connection() as conn:
             conn.execute("DELETE FROM books")
             conn.commit()

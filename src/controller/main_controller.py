@@ -1,5 +1,6 @@
 """Controller to coordinate between the UI and the backend services."""
 
+import subprocess
 from pathlib import Path
 from typing import Callable, List, Optional
 
@@ -13,18 +14,26 @@ from src.services.scanner import BookScanner
 class MainController:
     """Coordinates book scanning, persistence, and UI updates."""
 
-    def __init__(self, library_dir: str, db_path: str, cache_dir: str):
+    def __init__(
+        self,
+        library_dir: str,
+        db_path: str,
+        cache_dir: str,
+        error_callback: Optional[Callable[[str], None]] = None,
+    ):
         """Initialize the controller.
 
         Args:
             library_dir (str): Directory where books are stored.
             db_path (str): Path to the SQLite database.
             cache_dir (str): Path to the thumbnail cache.
+            error_callback (callable, optional): Callback to report errors to the UI.
         """
         self.library_dir = library_dir
         self.repository = BookRepository(db_path)
         self.extractor = CoverExtractor(cache_dir)
         self.scanner = BookScanner(self.repository, self.extractor)
+        self.error_callback = error_callback
 
     def get_books(self, category_id: Optional[int] = None) -> List[Book]:
         """Retrieve books from the repository, optionally filtered by category.
@@ -94,9 +103,11 @@ class MainController:
 
     def open_book(self, book: Book) -> None:
         """Open a book using the system's default application."""
-        import subprocess
-
         try:
             subprocess.run(["xdg-open", book.path], check=True)
         except subprocess.CalledProcessError as e:
-            print(f"Failed to open book {book.path}: {e}")
+            error_msg = f"Failed to open book {book.path}: {e}"
+            if self.error_callback:
+                self.error_callback(error_msg)
+            else:
+                print(error_msg)
