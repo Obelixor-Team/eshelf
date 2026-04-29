@@ -13,12 +13,14 @@ from gi.repository import Adw  # noqa: E402
 
 from src.config import DEFAULT_CONFIG, load_config  # noqa: E402
 from src.controller.main_controller import MainController  # noqa: E402
+from src.logging_config import setup_logging  # noqa: E402
 from src.ui.main_window import MainWindow  # noqa: E402
 
 
 def main() -> None:
     """Initialize and run the eShelf application."""
     config = load_config()
+    setup_logging(config)
     home = os.path.expanduser("~")
     library_dir = str(config.get("library_dir") or DEFAULT_CONFIG["library_dir"])
     db_path = os.path.join(home, ".local/share/eshelf/library.db")

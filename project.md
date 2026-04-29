@@ -611,7 +611,7 @@ class CoverExtractor:
         # Use a simple hash or just the filename to avoid issues with special characters
         import hashlib
 
-        file_hash = hashlib.md5(str(path.absolute()).encode()).hexdigest()
+        file_hash = hashlib.sha256(str(path.absolute()).encode()).hexdigest()
         return self.cache_dir / f"{file_hash}.png"
 
 ```

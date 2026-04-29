@@ -175,11 +175,18 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                 all_books = False
             else:
                 try:
-                    category_id = int(last_cat_id)
-                    self.sidebar.select_category(category_id, False)
-                    all_books = False
+                    potential_id = int(last_cat_id)
+                    existing_categories = {
+                        cat.id for cat in self.controller.get_categories()
+                    }
+                    if potential_id in existing_categories:
+                        category_id = potential_id
+                        self.sidebar.select_category(category_id, False)
+                        all_books = False
+                    else:
+                        self.sidebar.select_category(None, True)
                 except ValueError:
-                    pass
+                    self.sidebar.select_category(None, True)
 
             # Final grid refresh with category and sort
             self.refresh_grid(

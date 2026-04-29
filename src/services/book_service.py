@@ -55,9 +55,11 @@ class BookService:
             )
         return books
 
-    def add_book(self, book: Book) -> None:
-        """Add or update a book in the database."""
+    def add_book(self, book: Book) -> bool:
+        """Add a book to the database. Return True if added, False if updated."""
+        exists = self.repository.get_book_by_path(book.path) is not None
         self.repository.add_book(book)
+        return not exists
 
     def create_category(self, name: str) -> int:
         """Create a new category."""

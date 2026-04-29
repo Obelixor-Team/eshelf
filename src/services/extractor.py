@@ -93,5 +93,5 @@ class CoverExtractor:
 
     def _get_output_path(self, path: Path) -> Path:
         """Generate a unique output path for the cover image based on the file path."""
-        file_hash = hashlib.md5(str(path.absolute()).encode()).hexdigest()
+        file_hash = hashlib.sha256(str(path.absolute()).encode()).hexdigest()
         return self.cache_dir / f"{file_hash}.png"

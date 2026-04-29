@@ -14,6 +14,7 @@ DEFAULT_CONFIG = {
     "last_category_identifier": "all",
     "sidebar_visible": True,
     "last_sort_option": "Title",
+    "log_level": "INFO",
 }
 
 
