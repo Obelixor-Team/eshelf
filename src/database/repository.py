@@ -1,6 +1,7 @@
 """Repository for managing book metadata in a SQLite database."""
 
 import sqlite3
+from datetime import datetime
 from typing import List, Optional
 
 from src.models.book import Book
@@ -99,7 +100,7 @@ class BookRepository:
                     author=row[2],
                     cover_path=row[3],
                     category_id=row[4],
-                    created_at=row[5],
+                    created_at=datetime.fromisoformat(row[5]) if row[5] else None,
                 )
                 for row in cursor.fetchall()
             ]
@@ -120,7 +121,7 @@ class BookRepository:
                     author=row[2],
                     cover_path=row[3],
                     category_id=row[4],
-                    created_at=row[5],
+                    created_at=datetime.fromisoformat(row[5]) if row[5] else None,
                 )
             return None
 
@@ -195,7 +196,7 @@ class BookRepository:
                     author=row[2],
                     cover_path=row[3],
                     category_id=row[4],
-                    created_at=row[5],
+                    created_at=datetime.fromisoformat(row[5]) if row[5] else None,
                 )
                 for row in cursor.fetchall()
             ]
