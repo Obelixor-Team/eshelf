@@ -73,7 +73,7 @@ class BookWidget(Gtk.Box):  # type: ignore
         # Click gestures
         click_gesture = Gtk.GestureClick()
         click_gesture.set_button(1)  # Left click
-        click_gesture.connect("released", lambda *args: on_click_callback(self.book))
+        click_gesture.connect("released", self._on_clicked, on_click_callback)
         self.add_controller(click_gesture)
 
         if self.on_right_click_callback:
@@ -82,7 +82,25 @@ class BookWidget(Gtk.Box):  # type: ignore
             right_click_gesture.connect("released", self.on_right_clicked)
             self.add_controller(right_click_gesture)
 
-    def on_right_clicked(self, gesture: Gtk.GestureClick, n_press: int) -> None:
+    def _on_clicked(
+        self,
+        gesture: Gtk.GestureClick,
+        n_press: int,
+        x: float,
+        y: float,
+        callback: Callable[[Book], None],
+    ) -> None:
+        """Handle book click. Only open on double click."""
+        if n_press == 2:
+            callback(self.book)
+
+    def on_right_clicked(
+        self,
+        gesture: Gtk.GestureClick,
+        n_press: int,
+        x: float,
+        y: float,
+    ) -> None:
         """Handle right click to show context menu."""
         if self.on_right_click_callback:
             self.on_right_click_callback(self, self.book)
