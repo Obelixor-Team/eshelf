@@ -45,12 +45,17 @@ class MainController:
         )
         self.error_callback = error_callback
 
-    def get_books(self, category_id: Optional[int] = None) -> List[Book]:
+    def get_books(
+        self,
+        category_id: Optional[int] = None,
+        limit: Optional[int] = None,
+        offset: int = 0,
+    ) -> List[Book]:
         """Retrieve books from the repository, optionally filtered by category.
 
         If category_id is None, retrieve all books.
         """
-        return self.book_service.get_books(category_id)
+        return self.book_service.get_books(category_id, limit=limit, offset=offset)
 
     def get_uncategorized_books(self) -> List[Book]:
         """Retrieve books that have no category assigned."""

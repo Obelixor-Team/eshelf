@@ -24,7 +24,7 @@ def test_repository_add_and_get() -> None:
         retrieved = repo.get_book_by_path("/path/to/book.pdf")
         assert retrieved == book
 
-        all_books = repo.get_all_books()
+        all_books = list(repo.get_all_books())
         assert len(all_books) == 1
         assert all_books[0] == book
 
@@ -48,7 +48,7 @@ def test_repository_update_book() -> None:
         retrieved = repo.get_book_by_path("/path/to/book.pdf")
         assert retrieved is not None
         assert retrieved.title == "New Title"
-        assert len(repo.get_all_books()) == 1
+        assert len(list(repo.get_all_books())) == 1
 
 
 def test_repository_remove_book() -> None:
@@ -66,7 +66,7 @@ def test_repository_remove_book() -> None:
 
         repo.remove_book("/path/to/book.pdf")
         assert repo.get_book_by_path("/path/to/book.pdf") is None
-        assert len(repo.get_all_books()) == 0
+        assert len(list(repo.get_all_books())) == 0
 
 
 def test_repository_clear() -> None:
@@ -79,7 +79,7 @@ def test_repository_clear() -> None:
         repo.add_book(Book(path="2", title="T2", author="A2"))
 
         repo.clear()
-        assert len(repo.get_all_books()) == 0
+        assert len(list(repo.get_all_books())) == 0
 
 
 def test_repository_category_management() -> None:

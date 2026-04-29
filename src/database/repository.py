@@ -3,7 +3,7 @@
 import sqlite3
 import threading
 from datetime import datetime
-from typing import List, Optional, cast
+from typing import Iterator, List, Optional, cast
 
 from src.models.book import Book
 from src.models.category import Category
@@ -88,25 +88,29 @@ class BookRepository:
             )
             conn.commit()
 
-    def get_all_books(self) -> List[Book]:
-        """Retrieve all books from the database."""
-        with self._get_connection() as conn:
-            query = (
-                "SELECT path, title, author, cover_path, category_id, created_at "
-                "FROM books"
-            )
+    def get_all_books(
+        self, limit: Optional[int] = None, offset: int = 0
+    ) -> Iterator[Book]:
+        """Retrieve books from the database with optional pagination."""
+        conn = self._get_connection()
+        query = (
+            "SELECT path, title, author, cover_path, category_id, created_at FROM books"
+        )
+        if limit is not None:
+            query += " LIMIT ? OFFSET ?"
+            cursor = conn.execute(query, (limit, offset))
+        else:
             cursor = conn.execute(query)
-            return [
-                Book(
-                    path=row[0],
-                    title=row[1],
-                    author=row[2],
-                    cover_path=row[3],
-                    category_id=row[4],
-                    created_at=datetime.fromisoformat(row[5]) if row[5] else None,
-                )
-                for row in cursor.fetchall()
-            ]
+
+        for row in cursor:
+            yield Book(
+                path=row[0],
+                title=row[1],
+                author=row[2],
+                cover_path=row[3],
+                category_id=row[4],
+                created_at=datetime.fromisoformat(row[5]) if row[5] else None,
+            )
 
     def get_book_by_path(self, path: str) -> Optional[Book]:
         """Find a book by its file path."""

@@ -18,11 +18,16 @@ class BookService:
         """
         self.repository = repository
 
-    def get_books(self, category_id: Optional[int] = None) -> List[Book]:
-        """Retrieve books, optionally filtered by category."""
+    def get_books(
+        self,
+        category_id: Optional[int] = None,
+        limit: Optional[int] = None,
+        offset: int = 0,
+    ) -> List[Book]:
+        """Retrieve books, optionally filtered by category, with optional pagination."""
         if category_id is not None:
             return self.repository.get_books_by_category(category_id)
-        return self.repository.get_all_books()
+        return list(self.repository.get_all_books(limit=limit, offset=offset))
 
     def get_uncategorized_books(self) -> List[Book]:
         """Retrieve books with no category assigned."""

@@ -164,7 +164,7 @@ def test_controller_category_filtering(
     controller.book_service = mock_service
 
     controller.get_books(category_id=123)
-    mock_service.get_books.assert_called_with(123)
+    mock_service.get_books.assert_called_with(123, limit=None, offset=0)
 
     controller.get_uncategorized_books()
     mock_service.get_uncategorized_books.assert_called_once()
