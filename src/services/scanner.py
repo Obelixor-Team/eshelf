@@ -130,11 +130,14 @@ class BookScanner:
         removed = 0
         all_books = self.repository.get_all_books()
 
+        dir_path = Path(directory)
         for book in all_books:
-            if (
-                Path(book.path).is_relative_to(Path(directory))
-                and not Path(book.path).exists()
-            ):
+            try:
+                Path(book.path).relative_to(dir_path)
+            except ValueError:
+                continue
+
+            if not Path(book.path).exists():
                 self.repository.remove_book(book.path)
                 removed += 1
 
