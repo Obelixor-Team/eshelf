@@ -68,7 +68,7 @@ def test_main_window_event_handlers() -> None:
 
         # Test scan
         win.on_scan_clicked(MagicMock())
-        mock_thread.assert_called_once()
+        assert mock_thread.call_count == 1
         # Execute the scan worker synchronously for testing
         scan_worker = mock_thread.call_args[1]["target"]
         scan_worker()
@@ -76,6 +76,9 @@ def test_main_window_event_handlers() -> None:
 
         # Test cleanup
         win.on_cleanup_clicked(MagicMock())
+        assert mock_thread.call_count == 2
+        cleanup_worker = mock_thread.call_args[1]["target"]
+        cleanup_worker()
         controller.cleanup_library.assert_called_once()
 
         # Test book selection

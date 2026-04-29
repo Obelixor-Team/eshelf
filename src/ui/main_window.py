@@ -313,9 +313,16 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                 controller = self.controller
                 if file and controller:
                     path = file.get_path()
-                    success = controller.import_file(path)
-                    if success:
-                        self.refresh_grid()
+
+                    def worker() -> None:
+                        try:
+                            success = controller.import_file(path)
+                            if success:
+                                GLib.idle_add(self.refresh_grid)
+                        except Exception as e:
+                            GLib.idle_add(self.show_error, f"Error importing file: {e}")
+
+                    threading.Thread(target=worker, daemon=True).start()
             except Exception as e:
                 self.show_error(f"Error importing file: {e}")
 
@@ -334,11 +341,22 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                 controller = self.controller
                 if folder and controller:
                     path = folder.get_path()
-                    added, updated = controller.import_folder(path)
-                    self.refresh_grid()
-                    self.show_toast(
-                        f"Folder import complete: {added} added, {updated} updated."
-                    )
+
+                    def worker() -> None:
+                        try:
+                            added, updated = controller.import_folder(path)
+                            GLib.idle_add(self.refresh_grid)
+                            GLib.idle_add(
+                                self.show_toast,
+                                f"Folder import complete: {added} added, "
+                                f"{updated} updated.",
+                            )
+                        except Exception as e:
+                            GLib.idle_add(
+                                self.show_error, f"Error importing folder: {e}"
+                            )
+
+                    threading.Thread(target=worker, daemon=True).start()
             except Exception as e:
                 self.show_error(f"Error importing folder: {e}")
 
@@ -397,10 +415,21 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
     def on_cleanup_clicked(self, button: Gtk.Button) -> None:
         """Handle the cleanup button click."""
-        if self.controller:
-            removed = self.controller.cleanup_library()
-            self.refresh_grid()
-            self.show_toast(f"Cleanup complete: {removed} books removed.")
+        controller = self.controller
+        if not controller:
+            return
+
+        def worker() -> None:
+            try:
+                removed = controller.cleanup_library()
+                GLib.idle_add(self.refresh_grid)
+                GLib.idle_add(
+                    self.show_toast, f"Cleanup complete: {removed} books removed."
+                )
+            except Exception as e:
+                GLib.idle_add(self.show_error, f"Error during cleanup: {e}")
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def on_settings_clicked(self, button: Gtk.Button) -> None:
         """Handle the settings button click."""
