@@ -352,16 +352,40 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         box.set_margin_end(10)
         content_area.append(box)
 
-        label = Gtk.Label(label="Select a category for the imported book(s):")
+        label = Gtk.Label(label="Select or create a category:")
         box.append(label)
 
         combo = Gtk.ComboBoxText()
         combo.append("None", "Uncategorized")
-        categories = self.controller.get_categories()
-        for cat in categories:
-            combo.append(str(cat.id), cat.name)
-        combo.set_active_id("None")
+
+        def refresh_combo() -> None:
+            combo.remove_all()
+            combo.append("None", "Uncategorized")
+            for cat in self.controller.get_categories():
+                combo.append(str(cat.id), cat.name)
+            combo.set_active_id("None")
+
+        refresh_combo()
         box.append(combo)
+
+        # New category entry
+        new_cat_entry = Gtk.Entry(placeholder_text="New category name")
+        box.append(new_cat_entry)
+
+        add_cat_btn = Gtk.Button(label="Add Category")
+
+        def on_add_category_clicked(button: Gtk.Button) -> None:
+            name = new_cat_entry.get_text()
+            if name and self.controller:
+                try:
+                    self.controller.create_category(name)
+                    new_cat_entry.set_text("")
+                    refresh_combo()
+                except Exception as e:
+                    self.show_error(f"Error creating category: {e}")
+
+        add_cat_btn.connect("clicked", on_add_category_clicked)
+        box.append(add_cat_btn)
 
         # Import button
         import_btn = Gtk.Button(label="Import")
