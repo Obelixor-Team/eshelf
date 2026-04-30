@@ -615,7 +615,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         def on_show_titles_toggled(switch: Gtk.Switch, active: bool) -> bool:
             config["show_titles"] = active
             save_config(config)
-            self.shelf_grid.update_config(config)
+            self.grid.update_config(config)
             return False
 
         show_titles_switch.connect("state-set", on_show_titles_toggled)
