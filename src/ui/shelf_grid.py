@@ -77,7 +77,8 @@ class ShelfGrid(Gtk.Box):  # type: ignore
     ) -> None:
         """Bind the data to the widget."""
         book_obj = list_item.get_item()
-        widget = list_item.get_child()
+        box = list_item.get_child()
+        widget = box.get_first_child()
         if isinstance(book_obj, BookObject) and isinstance(widget, BookWidget):
             widget.bind(
                 book_obj.book,
