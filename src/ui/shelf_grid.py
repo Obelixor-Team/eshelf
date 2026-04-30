@@ -56,7 +56,13 @@ class ShelfGrid(Gtk.Box):  # type: ignore
         self.grid_view.set_margin_start(18)
         self.grid_view.set_margin_end(18)
 
-        self.append(self.grid_view)
+        # Scrolled Window
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_child(self.grid_view)
+        scrolled.set_vexpand(True)
+
+        self.append(scrolled)
 
     def _on_factory_setup(
         self, factory: Gtk.ListItemFactory, list_item: Gtk.ListItem
