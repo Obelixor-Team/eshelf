@@ -612,13 +612,13 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         show_titles_switch = Gtk.Switch()
         show_titles_switch.set_active(config.get("show_titles", True))
 
-        def on_show_titles_toggled(switch: Gtk.Switch, active: bool) -> bool:
+        def on_show_titles_toggled(switch: Gtk.Switch, *args: Any) -> None:
+            active = switch.get_active()
             config["show_titles"] = active
             save_config(config)
             self.grid.update_config(config)
-            return False
 
-        show_titles_switch.connect("state-set", on_show_titles_toggled)
+        show_titles_switch.connect("notify::active", on_show_titles_toggled)
         show_titles_row.add_suffix(show_titles_switch)
         display_group.add(show_titles_row)
         page.add(display_group)
