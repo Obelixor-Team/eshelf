@@ -73,8 +73,15 @@ class BookScanner:
             # Extract metadata
             try:
                 title, author = self.metadata_extractor.extract(file_path)
+            except Exception as e:
+                logger.error(
+                    f"Skipping book {file_path} due to metadata extraction error: {e}"
+                )
+                failed_files.append(file_path)
+                continue
 
-                # Check if book already exists
+            # Check if book already exists
+            try:
                 existing_book = self.repository.get_book_by_path(file_path)
 
                 # Extract cover only if necessary
