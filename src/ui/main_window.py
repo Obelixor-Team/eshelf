@@ -301,23 +301,43 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         dialog = Gtk.FileDialog(title="Select File or Folder to Import")
         dialog.set_modal(True)
 
-        def on_open_response(dialog: Any, result: Any) -> None:
+        def on_open_response(dialog: Gtk.FileDialog, result: Any) -> None:
+            path = None
             try:
-                # Try file first, then folder
+                # Try as file
+                file = dialog.open_finish(result)
+                path = file.get_path()
+            except Exception:
                 try:
-                    file = dialog.open_finish(result)
-                    path = file.get_path()
-                except Exception:
+                    # Try as folder
                     folder = dialog.select_folder_finish(result)
                     path = folder.get_path()
+                except Exception as e:
+                    self.show_error(f"Error selecting path: {e}")
 
-                if path and self.controller:
-                    self.show_category_dialog(path)
-            except Exception as e:
-                self.show_error(f"Error selecting path: {e}")
+            if path and self.controller:
+                self.show_category_dialog(path)
 
-        # Show open dialog for both files and folders
-        dialog.open(self, None, on_open_response)
+        # To allow both, we might need two separate buttons or dialogs
+        # as Gtk.FileDialog is usually file-only OR folder-only.
+        # Let's offer a choice first.
+        confirm_dialog = Adw.MessageDialog(
+            transient_for=self,
+            heading="Import Type",
+            body="Do you want to import a file or a folder?",
+        )
+        confirm_dialog.add_response("file", "File")
+        confirm_dialog.add_response("folder", "Folder")
+        confirm_dialog.add_response("cancel", "Cancel")
+
+        def on_choice(d: Adw.MessageDialog, response: str) -> None:
+            if response == "file":
+                dialog.open(self, None, on_open_response)
+            elif response == "folder":
+                dialog.select_folder(self, None, on_open_response)
+
+        confirm_dialog.connect("response", on_choice)
+        confirm_dialog.show()
 
     def show_category_dialog(self, path: str) -> None:
         """Show dialog to select a category for the import."""
