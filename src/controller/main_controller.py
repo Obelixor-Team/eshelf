@@ -142,6 +142,17 @@ class MainController:
         """Remove missing books and return count of removed books."""
         return self.scanner.cleanup_missing(self.library_dir)
 
+    def clear_library(self) -> None:
+        """Clear the database and remove all cached cover images."""
+        self.repository.clear()
+
+        # Remove all files in the cache directory
+        cache_path = Path(self.extractor.cache_dir)
+        if cache_path.exists() and cache_path.is_dir():
+            for item in cache_path.iterdir():
+                if item.is_file():
+                    item.unlink()
+
     def update_book_metadata(self, book_path: str, title: str, author: str) -> None:
         """Update the metadata for a book."""
         self.book_service.update_book_metadata(book_path, title, author)

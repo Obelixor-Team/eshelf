@@ -544,6 +544,48 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         cache_row.add_suffix(cache_box)
         group.add(cache_row)
 
+        # Clear library
+        clear_group = Adw.PreferencesGroup(title="Danger Zone")
+        clear_row = Adw.ActionRow(title="Clear Library")
+        clear_btn = Gtk.Button(label="Clear Database & Images")
+        clear_btn.add_css_class("destructive-action")
+
+        def on_clear_clicked(button: Gtk.Button) -> None:
+            # Confirm dialog
+            confirm_dialog = Adw.MessageDialog(
+                transient_for=self,
+                heading="Clear Library?",
+                body=(
+                    "This will permanently delete all book metadata and cached cover "
+                    "images. This cannot be undone."
+                ),
+            )
+            confirm_dialog.add_response("cancel", "Cancel")
+            confirm_dialog.add_response("clear", "Clear")
+            confirm_dialog.set_response_appearance(
+                "clear", Adw.ResponseAppearance.DESTRUCTIVE
+            )
+            confirm_dialog.set_default_response("cancel")
+            confirm_dialog.set_close_response("cancel")
+
+            def on_response(d: Adw.MessageDialog, response: str) -> None:
+                if response == "clear" and self.controller:
+                    try:
+                        self.controller.clear_library()
+                        self.refresh_grid()
+                        self.show_toast("Library cleared successfully.")
+                        dialog.close()
+                    except Exception as e:
+                        self.show_error(f"Error clearing library: {e}")
+
+            confirm_dialog.connect("response", on_response)
+            confirm_dialog.show()
+
+        clear_btn.connect("clicked", on_clear_clicked)
+        clear_row.add_suffix(clear_btn)
+        clear_group.add(clear_row)
+        page.add(clear_group)
+
         # Buttons
         button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         button_box.set_halign(Gtk.Align.END)

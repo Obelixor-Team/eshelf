@@ -278,9 +278,10 @@ class BookRepository:
             ]
 
     def clear(self) -> None:
-        """Remove all books from the database."""
+        """Remove all books and categories from the database."""
         with self._get_connection() as conn:
             conn.execute("DELETE FROM books")
+            conn.execute("DELETE FROM categories")
             conn.commit()
 
     def close(self) -> None:
