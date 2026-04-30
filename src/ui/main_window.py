@@ -684,6 +684,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                     "zoom_level": float(zoom_spin.get_value()),
                     "library_dir": library_entry.get_text(),
                     "cache_dir": cache_entry.get_text(),
+                    "show_titles": show_titles_switch.get_active(),
                 }
                 save_config(new_config)
                 self.grid.update_config(new_config)
