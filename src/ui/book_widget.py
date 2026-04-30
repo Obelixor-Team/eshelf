@@ -106,7 +106,6 @@ class BookWidget(Gtk.Box):  # type: ignore
         y: float,
     ) -> None:
         """Handle book click. Open on double click."""
-        print(f"DEBUG: _on_clicked called with n_press={n_press}")
         # Only open on double click (n_press=2)
         if n_press == 2 and self.book and self.on_click_callback:
             self.on_click_callback(self.book)
@@ -119,6 +118,5 @@ class BookWidget(Gtk.Box):  # type: ignore
         y: float,
     ) -> None:
         """Handle right click to show context menu."""
-        print("DEBUG: on_right_clicked called")
         if self.book and self.on_right_click_callback:
             self.on_right_click_callback(self, self.book)
