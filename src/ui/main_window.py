@@ -570,7 +570,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                 except Exception as e:
                     self.show_error(f"Error selecting folder: {e}")
 
-            folder_dialog.select_folder(self, on_library_folder_response)
+            folder_dialog.select_folder(self, None, on_library_folder_response)
 
         library_browse_button = Gtk.Button(icon_name="folder-open-symbolic")
         library_browse_button.connect("clicked", on_library_browse_clicked)
