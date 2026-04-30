@@ -88,13 +88,11 @@ class MainController:
     def scan_library(
         self, progress_callback: Optional[Callable[[int, int], None]] = None
     ) -> Tuple[int, int, List[str]]:
-        """Scan the library for books and return (added, updated, failed_files) counts.
-
-        """
-
+        """Scan the library for books and return (added, updated, failed) counts."""
         added, updated, failed = self.scanner.scan(
             self.library_dir, progress_callback=progress_callback
         )
+
         if self.error_callback:
             for file_path in failed:
                 self.error_callback(f"Failed to process {file_path}: {file_path}")
@@ -151,10 +149,17 @@ class MainController:
     def open_book(self, book: Book) -> None:
         """Open a book using the system's default application."""
         try:
-            subprocess.run(["xdg-open", book.path], check=True)
-        except subprocess.CalledProcessError as e:
+            subprocess.run(
+                ["xdg-open", book.path],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
             error_msg = f"Failed to open book {book.path}: {e}"
+            if isinstance(e, subprocess.CalledProcessError):
+                error_msg += f" (stderr: {e.stderr})"
+
+            self.logger.error(error_msg)
             if self.error_callback:
                 self.error_callback(error_msg)
-            else:
-                self.logger.error(error_msg)

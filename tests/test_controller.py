@@ -73,12 +73,19 @@ def test_controller_cleanup_library(controller_env: tuple[MainController, str]) 
 def test_controller_open_book(
     mock_run: MagicMock, controller_env: tuple[MainController, str]
 ) -> None:
-    """Test opening a book."""
+    """Test opening a book with the system default application."""
     controller, _ = controller_env
+    # Mock the return object of subprocess.run
+    mock_run.return_value.check_returncode.return_value = None
     book = Book(path="/path/to/book.pdf", title="Title", author="Author")
 
     controller.open_book(book)
-    mock_run.assert_called_once_with(["xdg-open", "/path/to/book.pdf"], check=True)
+    mock_run.assert_called_once_with(
+        ["xdg-open", "/path/to/book.pdf"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_controller_import_folder(controller_env: tuple[MainController, str]) -> None:

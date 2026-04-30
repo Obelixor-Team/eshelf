@@ -282,3 +282,9 @@ class BookRepository:
         with self._get_connection() as conn:
             conn.execute("DELETE FROM books")
             conn.commit()
+
+    def close(self) -> None:
+        """Close the database connection."""
+        if hasattr(self._local, "conn"):
+            self._local.conn.close()
+            del self._local.conn

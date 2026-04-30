@@ -27,6 +27,7 @@ def test_repository_add_and_get() -> None:
         all_books = list(repo.get_all_books())
         assert len(all_books) == 1
         assert all_books[0] == book
+        repo.close()
 
 
 def test_repository_update_book() -> None:

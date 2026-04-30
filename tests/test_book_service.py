@@ -19,6 +19,7 @@ def book_service_env() -> Generator[tuple[BookService, str], None, None]:
         repo = BookRepository(db_path)
         service = BookService(repo)
         yield service, db_path
+        repo.close()
 
 
 def test_book_service_get_books_pagination(
@@ -53,16 +54,49 @@ def test_book_service_get_books_no_category(
     assert len(books) == 2
 
 
-def test_book_service_get_uncategorized_books(
+def test_book_service_search_books(
     book_service_env: tuple[BookService, str],
 ) -> None:
-    """Test retrieving uncategorized books."""
+    """Test searching for books."""
     service, _ = book_service_env
-    cat_id = service.create_category("Test Cat")
+    service.add_book(Book(path="1", title="Python", author="Guido"))
+    service.add_book(Book(path="2", title="C++", author="Bjarne"))
 
-    service.add_book(Book(path="1", title="T1", author="A1", category_id=cat_id))
-    service.add_book(Book(path="2", title="T2", author="A2", category_id=None))
+    results = service.search_books("Python")
+    assert len(results) == 1
+    assert results[0].path == "1"
 
-    uncat = service.get_uncategorized_books()
-    assert len(uncat) == 1
-    assert uncat[0].path == "2"
+
+def test_book_service_sort_books(
+    book_service_env: tuple[BookService, str],
+) -> None:
+    """Test sorting books."""
+    service, _ = book_service_env
+    b1 = Book(path="1", title="B", author="A")
+    b2 = Book(path="2", title="A", author="B")
+    books = [b1, b2]
+
+    # Sort by title
+    sorted_title = service.sort_books(books, "Title")
+    assert sorted_title[0].title == "A"
+
+    # Sort by author
+    sorted_author = service.sort_books(books, "Author")
+    assert sorted_author[0].author == "A"
+    
+    # Sort unknown
+    assert service.sort_books(books, "Unknown") == books
+
+
+def test_book_service_update_metadata(
+    book_service_env: tuple[BookService, str],
+) -> None:
+    """Test updating book metadata."""
+    service, _ = book_service_env
+    service.add_book(Book(path="1", title="T1", author="A1"))
+    
+    service.update_book_metadata("1", "T2", "A2")
+    
+    books = service.get_books()
+    assert books[0].title == "T2"
+    assert books[0].author == "A2"

@@ -7,6 +7,7 @@ import gi  # noqa: E402
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
+gi.require_version("Gdk", "4.0")
 
 from gi.repository import Gdk, Gtk, Pango  # noqa: E402
 
@@ -20,22 +21,20 @@ class BookWidget(Gtk.Box):  # type: ignore
 
     def __init__(
         self,
-        book: Book,
-        on_click_callback: Callable[[Book], None],
         zoom_level: float = 1.0,
-        on_right_click_callback: Optional[Callable[[Gtk.Widget, Book], None]] = None,
     ) -> None:
         """Initialize the BookWidget.
 
         Args:
-            book (Book): The book to display.
-            on_click_callback (callable): Callback function when the book is clicked.
             zoom_level (float): Zoom factor for the cover size.
-            on_right_click_callback (callable): Callback function when the book is
-                right-clicked.
         """
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        self.on_right_click_callback = on_right_click_callback
+        self.on_click_callback: Optional[Callable[[Book], None]] = None
+        self.on_right_click_callback: Optional[Callable[[Gtk.Widget, Book], None]] = (
+            None
+        )
+        self.book: Optional[Book] = None
+        self.zoom_level = zoom_level
 
         width = int(120 * zoom_level)
         height = int(180 * zoom_level)
@@ -45,45 +44,59 @@ class BookWidget(Gtk.Box):  # type: ignore
         self.set_hexpand(False)
         self.set_vexpand(False)
         self.set_size_request(width, -1)
-        self.book = book
 
         # Cover image
-        image = Gtk.Picture()
-        image.set_size_request(width, height)
-        image.set_halign(Gtk.Align.CENTER)
-        image.set_valign(Gtk.Align.CENTER)
-        image.set_content_fit(Gtk.ContentFit.CONTAIN)
-        if book.cover_path:
-            try:
-                texture = Gdk.Texture.new_from_filename(book.cover_path)
-                image.set_paintable(texture)
-            except Exception as e:
-                self.logger.error(f"Error loading cover image: {e}")
-
-        self.append(image)
+        self.image = Gtk.Picture()
+        self.image.set_size_request(width, height)
+        self.image.set_halign(Gtk.Align.CENTER)
+        self.image.set_valign(Gtk.Align.CENTER)
+        self.image.set_content_fit(Gtk.ContentFit.CONTAIN)
+        self.append(self.image)
 
         # Title label
-        label = Gtk.Label(label=book.title)
-        label.set_ellipsize(Pango.EllipsizeMode.END)
-        label.set_max_width_chars(15)
-        label.set_width_chars(15)
-        label.set_wrap(True)
-        label.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
-        label.set_justify(Gtk.Justification.CENTER)
-        label.set_halign(Gtk.Align.CENTER)
-        self.append(label)
+        self.label = Gtk.Label()
+        self.label.set_ellipsize(Pango.EllipsizeMode.END)
+        self.label.set_max_width_chars(15)
+        self.label.set_width_chars(15)
+        self.label.set_wrap(True)
+        self.label.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        self.label.set_justify(Gtk.Justification.CENTER)
+        self.label.set_halign(Gtk.Align.CENTER)
+        self.append(self.label)
 
         # Click gestures
         click_gesture = Gtk.GestureClick()
         click_gesture.set_button(1)  # Left click
-        click_gesture.connect("released", self._on_clicked, on_click_callback)
+        click_gesture.connect("released", self._on_clicked)
         self.add_controller(click_gesture)
 
-        if self.on_right_click_callback:
-            right_click_gesture = Gtk.GestureClick()
-            right_click_gesture.set_button(3)  # Right click
-            right_click_gesture.connect("released", self.on_right_clicked)
-            self.add_controller(right_click_gesture)
+        self.right_click_gesture = Gtk.GestureClick()
+        self.right_click_gesture.set_button(3)  # Right click
+        self.right_click_gesture.connect("released", self.on_right_clicked)
+        self.add_controller(self.right_click_gesture)
+
+    def bind(
+        self,
+        book: Book,
+        on_click_callback: Callable[[Book], None],
+        on_right_click_callback: Optional[Callable[[Gtk.Widget, Book], None]] = None,
+    ) -> None:
+        """Bind a book to this widget."""
+        self.book = book
+        self.on_click_callback = on_click_callback
+        self.on_right_click_callback = on_right_click_callback
+
+        self.label.set_label(book.title)
+
+        if book.cover_path:
+            try:
+                texture = Gdk.Texture.new_from_filename(book.cover_path)
+                self.image.set_paintable(texture)
+            except Exception as e:
+                self.logger.error(f"Error loading cover image: {e}")
+                self.image.set_paintable(None)
+        else:
+            self.image.set_paintable(None)
 
     def _on_clicked(
         self,
@@ -91,11 +104,12 @@ class BookWidget(Gtk.Box):  # type: ignore
         n_press: int,
         x: float,
         y: float,
-        callback: Callable[[Book], None],
     ) -> None:
-        """Handle book click. Only open on double click."""
-        if n_press == 2:
-            callback(self.book)
+        """Handle book click. Open on single click."""
+        # Opening on single click (n_press >= 1) as a workaround for
+        # unreliable gesture clicks
+        if n_press >= 1 and self.book and self.on_click_callback:
+            self.on_click_callback(self.book)
 
     def on_right_clicked(
         self,
@@ -105,5 +119,5 @@ class BookWidget(Gtk.Box):  # type: ignore
         y: float,
     ) -> None:
         """Handle right click to show context menu."""
-        if self.on_right_click_callback:
+        if self.book and self.on_right_click_callback:
             self.on_right_click_callback(self, self.book)

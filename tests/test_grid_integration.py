@@ -26,17 +26,9 @@ def test_shelf_grid_layout_columns() -> None:
     # Update grid with books
     grid.update_books(books)
 
-    # Verify children count
-    children = []
-    child = grid.get_first_child()
-    while child:
-        children.append(child)
-        child = child.get_next_sibling()
+    # Verify store count
+    assert grid.store.get_n_items() == 10
 
-    assert len(children) == 10
-
-    # Verify that books are attached to the grid
-    # Since we can't easily check allocations without realizing the widget,
-    # we'll verify that the grid logic is sound by checking that
-    # update_books properly populates the grid
-    assert len(children) == len(books)
+    # Verify the GridView's model is correct
+    assert grid.grid_view.get_model() == grid.selection_model
+    assert grid.selection_model.get_model() == grid.store

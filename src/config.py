@@ -2,25 +2,49 @@
 
 import json
 import os
-from typing import Any
+from typing import Any, Literal
 
 try:
     from platformdirs import user_cache_dir, user_config_dir, user_data_dir
 except ImportError:
-    # Fallback for platforms where platformdirs is not available
-    def user_config_dir(appname: str, *args, **kwargs) -> str:
+
+    def user_config_dir(
+        appname: str | None = None,
+        appauthor: str | Literal[False] | None = None,
+        version: str | None = None,
+        roaming: bool = False,
+        ensure_exists: bool = False,
+        use_site_for_root: bool = False,
+    ) -> str:
         """Fallback for user_config_dir when platformdirs is not available."""
-
+        if not appname:
+            return os.path.expanduser("~/.config")
         return os.path.expanduser(f"~/.config/{appname}")
-    
-    def user_cache_dir(appname: str, *args, **kwargs) -> str:
+
+    def user_cache_dir(
+        appname: str | None = None,
+        appauthor: str | Literal[False] | None = None,
+        version: str | None = None,
+        opinion: bool = True,
+        ensure_exists: bool = False,
+        use_site_for_root: bool = False,
+    ) -> str:
         """Fallback for user_cache_dir when platformdirs is not available."""
-
+        if not appname:
+            return os.path.expanduser("~/.cache")
         return os.path.expanduser(f"~/.cache/{appname}")
-    
-    def user_data_dir(appname: str, *args, **kwargs) -> str:
-        """Fallback for user_data_dir when platformdirs is not available."""
 
+    def user_data_dir(
+        appname: str | None = None,
+        appauthor: str | Literal[False] | None = None,
+        version: str | None = None,
+        roaming: bool = False,
+        ensure_exists: bool = False,
+        use_site_for_root: bool = False,
+    ) -> str:
+        """Fallback for user_data_dir when platformdirs is not available."""
+        if not appname:
+            return os.path.expanduser("~/.local/share")
         return os.path.expanduser(f"~/.local/share/{appname}")
 
 
