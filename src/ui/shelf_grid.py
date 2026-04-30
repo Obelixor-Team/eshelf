@@ -64,7 +64,11 @@ class ShelfGrid(Gtk.Box):  # type: ignore
         """Create the widget for a list item."""
         zoom_level = self._config.get("zoom_level", 1.0)
         widget = BookWidget(zoom_level=zoom_level)
-        list_item.set_child(widget)
+        # Wrap the widget in a box to enforce alignment/sizing
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        box.set_size_request(int(156 * zoom_level), int(218 * zoom_level))
+        box.append(widget)
+        list_item.set_child(box)
 
     def _on_factory_bind(
         self, factory: Gtk.ListItemFactory, list_item: Gtk.ListItem
