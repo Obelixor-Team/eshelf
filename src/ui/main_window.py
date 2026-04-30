@@ -425,6 +425,15 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         print("DEBUG: Showing Gtk.Dialog for category selection")
         dialog.show()
 
+    def show_progress_bar(self) -> None:
+        """Show and reset the progress bar."""
+        self.progress_bar.set_visible(True)
+        self.progress_bar.set_fraction(0.0)
+
+    def hide_progress_bar(self) -> None:
+        """Hide the progress bar."""
+        self.progress_bar.set_visible(False)
+
     def on_scan_clicked(self, button: Gtk.Button) -> None:
         """Handle the scan button click."""
         if not self.controller:
