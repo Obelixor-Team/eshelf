@@ -105,3 +105,61 @@ def test_save_config_validation(mock_config_file: str) -> None:
     invalid_lib["library_dir"] = 123
     with pytest.raises(ValueError, match="library_dir must be a string"):
         save_config(invalid_lib)
+
+
+def test_load_config_malformed_json(mock_config_file: str) -> None:
+    """Test handling of malformed JSON."""
+    with open(mock_config_file, "w") as f:
+        f.write("{invalid:json}")
+
+    config = load_config()
+    assert config == src.config.DEFAULT_CONFIG
+
+
+def test_load_config_invalid_values(mock_config_file: str) -> None:
+    """Test handling of invalid types in the config file."""
+    with open(mock_config_file, "w") as f:
+        json.dump(
+            {
+                "books_per_line": "not-an-int",
+                "zoom_level": -1,
+                "sidebar_visible": "not-a-bool",
+                "last_category_identifier": 123,
+            },
+            f,
+        )
+
+    config = load_config()
+    assert config["books_per_line"] == src.config.DEFAULT_CONFIG["books_per_line"]
+    assert config["zoom_level"] == src.config.DEFAULT_CONFIG["zoom_level"]
+    assert config["sidebar_visible"] == src.config.DEFAULT_CONFIG["sidebar_visible"]
+
+
+def test_platformdirs_fallback() -> None:
+    """Test the platformdirs fallback functions."""
+    import sys
+    from unittest.mock import patch
+
+    # Ensure platformdirs is not importable for the test
+    with patch.dict(sys.modules, {"platformdirs": None}):
+        # Reloading config module to trigger the except ImportError block
+        import importlib
+
+        import src.config
+
+        importlib.reload(src.config)
+
+        # Test the fallback functions directly if they exist on the module
+        # This is tricky because the module is reloaded.
+        # Let's check if the functions are defined as expected.
+        assert hasattr(src.config, "user_config_dir")
+
+        # Test the fallback behavior
+        config_dir = src.config.user_config_dir("testapp")
+        assert config_dir == os.path.expanduser("~/.config/testapp")
+
+        cache_dir = src.config.user_cache_dir("testapp")
+        assert cache_dir == os.path.expanduser("~/.cache/testapp")
+
+        data_dir = src.config.user_data_dir("testapp")
+        assert data_dir == os.path.expanduser("~/.local/share/testapp")

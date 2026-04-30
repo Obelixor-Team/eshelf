@@ -42,41 +42,45 @@ def test_extract_pdf_success(
     assert result.endswith(".png")  # Should be a hash-based path
     mock_image.save.assert_called_once()
 
+    @patch("src.services.extractor.Image")
+    @patch("src.services.extractor.epub.read_epub")
+    @patch("pathlib.Path.stat")
+    @patch("pathlib.Path.exists")
+    @patch("pathlib.Path.mkdir")
+    def test_extract_epub_success(
+        mock_mkdir: MagicMock,
+        mock_exists: MagicMock,
+        mock_path_stat: MagicMock,
+        mock_read_epub: MagicMock,
+        mock_image: MagicMock,
+    ) -> None:
+        """Test successful EPUB cover extraction."""
+        # Mock EPUB book and items
+        mock_book = MagicMock()
+        mock_item = MagicMock()
+        mock_item.get_type.return_value = 9  # ITEM_IMAGE is 9 in ebooklib
+        mock_item.get_name.return_value = "cover.jpg"
+        mock_item.get_content.return_value = b"fake_image_data"
 
-@patch("src.services.extractor.epub.read_epub")
-@patch("pathlib.Path.stat")
-@patch("pathlib.Path.exists")
-@patch("pathlib.Path.mkdir")
-def test_extract_epub_success(
-    mock_mkdir: MagicMock,
-    mock_exists: MagicMock,
-    mock_path_stat: MagicMock,
-    mock_read_epub: MagicMock,
-) -> None:
-    """Test successful EPUB cover extraction."""
-    # Mock EPUB book and items
-    mock_book = MagicMock()
-    mock_item = MagicMock()
-    mock_item.get_type.return_value = 9  # ITEM_IMAGE is 9 in ebooklib
-    mock_item.get_name.return_value = "cover.jpg"
-    mock_item.get_content.return_value = b"fake_image_data"
+        # Mock metadata properly: list of tuples for get_metadata
+        mock_book.get_metadata.return_value = [("cover_id", "cover_id")]
+        mock_book.get_item_with_id.return_value = mock_item
+        mock_read_epub.return_value = mock_book
 
-    mock_book.get_metadata.return_value = "cover_id"
-    mock_book.get_item_with_id.return_value = mock_item
-    mock_read_epub.return_value = mock_book
+        # Mock Path.exists to return False so mkdir is called
+        mock_exists.return_value = False
+        # Mock Path.stat to return dummy values
+        mock_path_stat.return_value.st_size = 1024
+        mock_path_stat.return_value.st_mtime = 1234567890
+        # Mock Path.st_mode for is_dir check (not directly used but stat is called)
+        mock_path_stat.return_value.st_mode = 0o100644  # regular file
 
-    # Mock Path.exists to return False so mkdir is called
-    mock_exists.return_value = False
-    # Mock Path.stat to return dummy values
-    mock_path_stat.return_value.st_size = 1024
-    mock_path_stat.return_value.st_mtime = 1234567890
-    # Mock Path.st_mode for is_dir check (not directly used but stat is called)
-    mock_path_stat.return_value.st_mode = 0o100644  # regular file
+        extractor = CoverExtractor("/tmp/eshelf_cache")
+        result = extractor.extract("test.epub")
 
-    extractor = CoverExtractor("/tmp/eshelf_cache")
-    result = extractor.extract("test.epub")
+        assert result is not None
+        mock_image.open.assert_called_once()
 
-    assert result is not None
     assert result.endswith(".png")  # Should be a hash-based path
 
     # Cleanup
