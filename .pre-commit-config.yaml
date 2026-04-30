@@ -16,7 +16,7 @@ repos:
 
       - id: pytest
         name: pytest (main only)
-        entry: bash -c 'if [ "$(git branch --show-current)" != "main" ]; then exit 0; fi; .venv/bin/pytest --cov=src --cov-fail-under=80'
+        entry: bash -c 'if [ "$(git branch --show-current)" != "main" ]; then exit 0; fi; .venv/bin/pytest --cov=src --cov-fail-under=80 --cov-report=term'
         language: system
         pass_filenames: false
         always_run: true

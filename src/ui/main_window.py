@@ -603,6 +603,11 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         box.set_margin_end(6)
         popover.set_child(box)
 
+        # Open action
+        open_btn = Gtk.Button(label="Open")
+        open_btn.connect("clicked", lambda _: self.on_book_selected(book))
+        box.append(open_btn)
+
         # Edit metadata action
         edit_btn = Gtk.Button(label="Edit Metadata")
         edit_btn.connect(

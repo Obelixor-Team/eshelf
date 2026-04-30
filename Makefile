@@ -17,7 +17,7 @@ typecheck: ## Run static type checking
 	.venv/bin/mypy src
 
 pre-commit: ## Run pre-commit hooks
-	pre-commit run --all-files
+	pre-commit run --all-files --verbose
 
 clean: ## Clean up cache files
 	find . -type d -name "__pycache__" -exec rm -rf {} +

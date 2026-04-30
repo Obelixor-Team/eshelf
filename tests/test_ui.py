@@ -19,26 +19,16 @@ def test_book_widget_initialization() -> None:
 
 
 def test_book_widget_double_click_opens_book() -> None:
-    """Test book opening on double click."""
+    """Test book opening on double click and not single click."""
     widget = BookWidget()
     book = Book(title="Test Book", path="/tmp/test.pdf", author="Test Author")
     callback = MagicMock()
     widget.bind(book, on_click_callback=callback)
 
-    # Simulate double click
-    widget._on_clicked(MagicMock(), n_press=2, x=0, y=0)
-
-    callback.assert_called_once_with(book)
-
-
-def test_book_widget_single_click_opens_book() -> None:
-    """Test book opening on single click."""
-    widget = BookWidget()
-    book = Book(title="Test Book", path="/tmp/test.pdf", author="Test Author")
-    callback = MagicMock()
-    widget.bind(book, on_click_callback=callback)
-
-    # Simulate single click
+    # Simulate first click (n_press=1)
     widget._on_clicked(MagicMock(), n_press=1, x=0, y=0)
+    callback.assert_not_called()
 
+    # Simulate second click (n_press=2) - should open
+    widget._on_clicked(MagicMock(), n_press=2, x=0, y=0)
     callback.assert_called_once_with(book)
