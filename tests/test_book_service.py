@@ -83,7 +83,7 @@ def test_book_service_sort_books(
     # Sort by author
     sorted_author = service.sort_books(books, "Author")
     assert sorted_author[0].author == "A"
-    
+
     # Sort unknown
     assert service.sort_books(books, "Unknown") == books
 
@@ -94,9 +94,9 @@ def test_book_service_update_metadata(
     """Test updating book metadata."""
     service, _ = book_service_env
     service.add_book(Book(path="1", title="T1", author="A1"))
-    
+
     service.update_book_metadata("1", "T2", "A2")
-    
+
     books = service.get_books()
     assert books[0].title == "T2"
     assert books[0].author == "A2"

@@ -4,3 +4,4 @@
 .mypy_cache/
 .venv/
 __pycache__/
+src/eshelf.egg-info/
