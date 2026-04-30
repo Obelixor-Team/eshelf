@@ -62,8 +62,9 @@ class CoverExtractor:
             output_path = self._get_output_path(path)
             cover_image.save(output_path, "PNG")
             return str(output_path)
-        except (OSError, RuntimeError) as e:
-            raise ExtractionError(f"Error extracting PDF cover from {path}") from e
+        except Exception as e:
+            logger.warning(f"Could not extract PDF cover from {path}: {e}")
+            return None
 
     def _extract_epub(self, path: Path) -> Optional[str]:
         """Extract the cover image from an EPUB file."""
