@@ -66,7 +66,7 @@ class ShelfGrid(Gtk.Box):  # type: ignore
         widget = BookWidget(zoom_level=zoom_level)
         # Wrap the widget in a box to enforce alignment/sizing
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        w, h = int(156 * zoom_level), int(218 * zoom_level)
+        w, h = int(120 * zoom_level), int(168 * zoom_level)
         box.set_size_request(w, h)
         print(f"DEBUG: ShelfGrid tile box set to size: {w}x{h}")
         box.append(widget)
