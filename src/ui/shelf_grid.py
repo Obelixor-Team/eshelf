@@ -96,12 +96,11 @@ class ShelfGrid(Gtk.Box):  # type: ignore
             )
 
     def update_config(self, config: dict[str, Any]) -> None:
-        """Update the cached configuration."""
+        """Update the cached configuration and force a grid refresh."""
         self._config = config
-        # We might need to recreate the factory or refresh widgets if zoom changes
-        # For now, let's just trigger a reload of the store if needed,
-        # but Gtk.GridView doesn't easily support dynamic widget resizing after setup
-        # without some tricks. We'll stick to full refresh for config changes.
+        # Force a refresh by re-adding items
+        books = [obj.book for obj in self.store]
+        self.update_books(books)
 
     def update_books(self, books: list[Book]) -> None:
         """Refresh the grid with a new list of books."""
