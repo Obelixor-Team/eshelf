@@ -139,7 +139,10 @@ class MainController:
             return False
 
     def import_path(
-        self, path: str, category_id: Optional[int] = None
+        self,
+        path: str,
+        category_id: Optional[int] = None,
+        progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> Tuple[int, int, List[str]]:
         """Import a file or folder into a specific category."""
         target = Path(path)
@@ -151,9 +154,12 @@ class MainController:
                 self.move_book_to_category(path, category_id)
             return (1 if success else 0, 0, [] if success else [path])
         elif target.is_dir():
-            added, updated, failed = self.import_folder(path)
+            added, updated, failed = self.import_folder(
+                path, progress_callback=progress_callback
+            )
             print(
-                f"DEBUG: Folder import results: {added} added, {updated} updated, {failed} failed"
+                f"DEBUG: Folder import results: {added} added, {updated} updated, "
+                f"{failed} failed"
             )
             if category_id:
                 # Logic to categorize all imported books

@@ -398,15 +398,23 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
             print(f"DEBUG: Starting import worker for path: {path}, cat_id: {c_id}")
 
+            def progress_callback(current: int, total: int) -> None:
+                GLib.idle_add(self.update_progress, current, total)
+
             def worker() -> None:
                 try:
                     print("DEBUG: Inside import worker")
-                    added, updated, failed = self.controller.import_path(path, c_id)
+                    GLib.idle_add(self.show_progress_bar)
+                    added, updated, failed = self.controller.import_path(
+                        path, c_id, progress_callback=progress_callback
+                    )
                     GLib.idle_add(self.refresh_grid)
+                    GLib.idle_add(self.hide_progress_bar)
                     msg = f"Imported: {added} added, {updated} updated, {len(failed)} failed."
                     GLib.idle_add(self.show_toast, msg)
                 except Exception as e:
                     print(f"DEBUG: Error in import worker: {e}")
+                    GLib.idle_add(self.hide_progress_bar)
                     GLib.idle_add(self.show_error, f"Error: {e}")
 
             threading.Thread(target=worker, daemon=True).start()
