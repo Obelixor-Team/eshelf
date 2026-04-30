@@ -1,6 +1,7 @@
 """Service for extracting book covers from PDF and EPUB files."""
 
 import hashlib
+import io
 import logging
 from pathlib import Path
 from typing import Optional
@@ -8,6 +9,7 @@ from typing import Optional
 import ebooklib
 from ebooklib import epub
 from pdf2image import convert_from_path
+from PIL import Image
 
 from src.services.exceptions import ExtractionError
 
@@ -16,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 class CoverExtractor:
     """Extracts thumbnails from digital book formats."""
+
+    THUMBNAIL_SIZE = (200, 300)
 
     def __init__(self, cache_dir: str):
         """Initialize the extractor.
@@ -54,6 +58,7 @@ class CoverExtractor:
                 return None
 
             cover_image = images[0]
+            cover_image.thumbnail(self.THUMBNAIL_SIZE)
             output_path = self._get_output_path(path)
             cover_image.save(output_path, "PNG")
             return str(output_path)
@@ -84,8 +89,9 @@ class CoverExtractor:
                 return None
 
             output_path = self._get_output_path(path)
-            with open(output_path, "wb") as f:
-                f.write(cover_item.get_content())
+            with Image.open(io.BytesIO(cover_item.get_content())) as img:
+                img.thumbnail(self.THUMBNAIL_SIZE)
+                img.save(output_path, "PNG")
 
             return str(output_path)
         except Exception as e:
