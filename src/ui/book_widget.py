@@ -38,7 +38,6 @@ class BookWidget(Gtk.Box):  # type: ignore
 
         width = int(120 * zoom_level)
         height = int(168 * zoom_level)
-        print(f"DEBUG: BookWidget initialized with size: {width}x{height}")
 
         self.set_halign(Gtk.Align.CENTER)
         self.set_valign(Gtk.Align.START)
