@@ -86,11 +86,13 @@ class ShelfGrid(Gtk.Box):  # type: ignore
         book_obj = list_item.get_item()
         box = list_item.get_child()
         widget = box.get_first_child()
+        show_titles = self._config.get("show_titles", True)
         if isinstance(book_obj, BookObject) and isinstance(widget, BookWidget):
             widget.bind(
                 book_obj.book,
                 self.on_book_selected,
                 self.on_book_right_clicked,
+                show_title=show_titles,
             )
 
     def update_config(self, config: dict[str, Any]) -> None:

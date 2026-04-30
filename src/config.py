@@ -58,6 +58,7 @@ DEFAULT_CONFIG = {
     "last_category_identifier": "all",
     "sidebar_visible": True,
     "last_sort_option": "Title",
+    "show_titles": True,
     "log_level": "INFO",
 }
 
@@ -97,8 +98,9 @@ def load_config() -> dict[str, Any]:
                     config[key] = DEFAULT_CONFIG[key]
 
             # Ensure boolean fields are booleans
-            if not isinstance(config["sidebar_visible"], bool):
-                config["sidebar_visible"] = DEFAULT_CONFIG["sidebar_visible"]
+            for key in ["sidebar_visible", "show_titles"]:
+                if not isinstance(config.get(key), bool):
+                    config[key] = DEFAULT_CONFIG[key]
 
             return config
     except (json.JSONDecodeError, IOError):
@@ -134,6 +136,10 @@ def save_config(config: dict[str, Any]) -> None:
     sidebar_visible = full_config.get("sidebar_visible")
     if not isinstance(sidebar_visible, bool):
         raise ValueError("sidebar_visible must be a boolean")
+
+    show_titles = full_config.get("show_titles")
+    if not isinstance(show_titles, bool):
+        raise ValueError("show_titles must be a boolean")
 
     last_sort_option = full_config.get("last_sort_option")
     if not isinstance(last_sort_option, str):

@@ -605,6 +605,25 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         cache_row.add_suffix(cache_box)
         group.add(cache_row)
 
+        # Display settings
+        display_group = Adw.PreferencesGroup(title="Display")
+
+        show_titles_row = Adw.ActionRow(title="Show Titles")
+        show_titles_switch = Gtk.Switch()
+        show_titles_switch.set_active(config.get("show_titles", True))
+
+        def on_show_titles_toggled(switch: Gtk.Switch, active: bool) -> None:
+            config["show_titles"] = active
+            save_config(config)
+            self.refresh_grid()
+
+        show_titles_switch.connect(
+            "state-set", lambda s, state: on_show_titles_toggled(s, state) or False
+        )
+        show_titles_row.add_suffix(show_titles_switch)
+        display_group.add(show_titles_row)
+        page.add(display_group)
+
         # Clear library
         clear_group = Adw.PreferencesGroup(title="Danger Zone")
         clear_row = Adw.ActionRow(title="Clear Library")

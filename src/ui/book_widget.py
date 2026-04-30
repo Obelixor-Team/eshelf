@@ -81,11 +81,13 @@ class BookWidget(Gtk.Box):  # type: ignore
         book: Book,
         on_click_callback: Callable[[Book], None],
         on_right_click_callback: Optional[Callable[[Gtk.Widget, Book], None]] = None,
+        show_title: bool = True,
     ) -> None:
         """Bind a book to this widget."""
         self.book = book
         self.on_click_callback = on_click_callback
         self.on_right_click_callback = on_right_click_callback
+        self.label.set_visible(show_title)
 
         self.label.set_label(book.title)
 
