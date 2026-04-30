@@ -341,51 +341,56 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
     def show_category_dialog(self, path: str) -> None:
         """Show dialog to select a category for the import."""
-        dialog = Adw.PreferencesDialog()
-        dialog.set_title("Select Category")
+        dialog = Gtk.Dialog(title="Select Category", transient_for=self, modal=True)
+        content_area = dialog.get_content_area()
 
-        page = Adw.PreferencesPage()
-        dialog.add(page)
+        # Category selection
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        box.set_margin_top(10)
+        box.set_margin_bottom(10)
+        box.set_margin_start(10)
+        box.set_margin_end(10)
+        content_area.append(box)
 
-        group = Adw.PreferencesGroup(title="Target Category")
-        page.add(group)
+        label = Gtk.Label(label="Select a category for the imported book(s):")
+        box.append(label)
 
-        # Category list (or None for Uncategorized)
         combo = Gtk.ComboBoxText()
         combo.append("None", "Uncategorized")
         categories = self.controller.get_categories()
         for cat in categories:
             combo.append(str(cat.id), cat.name)
         combo.set_active_id("None")
+        box.append(combo)
 
-        row = Adw.ActionRow(title="Category")
-        row.add_suffix(combo)
-        group.add(row)
+        # Import button
+        import_btn = Gtk.Button(label="Import")
+        import_btn.add_css_class("suggested-action")
+        box.append(import_btn)
 
-        def on_import_confirmed(button: Gtk.Button) -> None:
+        def on_import_clicked_internal(button: Gtk.Button) -> None:
             cat_id = combo.get_active_id()
             c_id = int(cat_id) if cat_id != "None" else None
 
+            print(f"DEBUG: Starting import worker for path: {path}, cat_id: {c_id}")
+
             def worker() -> None:
                 try:
+                    print("DEBUG: Inside import worker")
                     added, updated, failed = self.controller.import_path(path, c_id)
                     GLib.idle_add(self.refresh_grid)
                     msg = f"Imported: {added} added, {updated} updated, {len(failed)} failed."
                     GLib.idle_add(self.show_toast, msg)
                 except Exception as e:
+                    print(f"DEBUG: Error in import worker: {e}")
                     GLib.idle_add(self.show_error, f"Error: {e}")
 
             threading.Thread(target=worker, daemon=True).start()
-            dialog.close()
+            dialog.destroy()
 
-        save_btn = Gtk.Button(label="Import")
-        save_btn.add_css_class("suggested-action")
-        save_btn.connect("clicked", on_import_confirmed)
+        import_btn.connect("clicked", on_import_clicked_internal)
 
-        button_group = Adw.PreferencesGroup()
-        button_group.add(save_btn)
-        page.add(button_group)
-
+        print("DEBUG: Showing Gtk.Dialog for category selection")
         dialog.show()
 
     def on_scan_clicked(self, button: Gtk.Button) -> None:
