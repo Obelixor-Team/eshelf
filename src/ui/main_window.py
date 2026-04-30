@@ -78,11 +78,8 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.menu.set_child(menu_box)
 
         # Menu items
-        self.import_file_item = Gtk.Button(label="Import File")
-        self.import_file_item.connect("clicked", self.on_import_file_clicked)
-
-        self.import_folder_item = Gtk.Button(label="Import Folder")
-        self.import_folder_item.connect("clicked", self.on_import_folder_clicked)
+        self.import_item = Gtk.Button(label="Import")
+        self.import_item.connect("clicked", self.on_import_clicked)
 
         self.cleanup_item = Gtk.Button(label="Cleanup Library")
         self.cleanup_item.connect("clicked", self.on_cleanup_clicked)
@@ -90,8 +87,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.settings_item = Gtk.Button(label="Settings")
         self.settings_item.connect("clicked", self.on_settings_clicked)
 
-        menu_box.append(self.import_file_item)
-        menu_box.append(self.import_folder_item)
+        menu_box.append(self.import_item)
         menu_box.append(self.cleanup_item)
         menu_box.append(self.settings_item)
 
@@ -297,81 +293,80 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             self.sidebar_toggle.set_icon_name("sidebar-collapse-symbolic")
         self.save_ui_state()
 
-    def on_import_file_clicked(self, item: Gtk.Button) -> None:
-        """Handle import file action."""
+    def on_import_clicked(self, item: Gtk.Button) -> None:
+        """Unified import handler."""
         if not self.controller:
             return
 
-        dialog = Gtk.FileDialog(title="Select Book File")
-
-        # Create a filter for PDF and EPUB files
-        filter_pdf = Gtk.FileFilter()
-        filter_pdf.set_name("Books")
-        filter_pdf.add_pattern("*.pdf")
-        filter_pdf.add_pattern("*.epub")
-
-        # Create a Gio.ListStore to hold the filter
-        from gi.repository import Gio
-
-        filters = Gio.ListStore()
-        filters.append(filter_pdf)
-
-        dialog.set_filters(filters)
+        dialog = Gtk.FileDialog(title="Select File or Folder to Import")
+        dialog.set_modal(True)
 
         def on_open_response(dialog: Any, result: Any) -> None:
             try:
-                file = dialog.open_finish(result)
-                controller = self.controller
-                if file and controller:
+                # Try file first, then folder
+                try:
+                    file = dialog.open_finish(result)
                     path = file.get_path()
-
-                    def worker() -> None:
-                        try:
-                            success = controller.import_file(path)
-                            if success:
-                                GLib.idle_add(self.refresh_grid)
-                        except Exception as e:
-                            GLib.idle_add(self.show_error, f"Error importing file: {e}")
-
-                    threading.Thread(target=worker, daemon=True).start()
-            except Exception as e:
-                self.show_error(f"Error importing file: {e}")
-
-        dialog.open(self, None, on_open_response)
-
-    def on_import_folder_clicked(self, item: Gtk.Button) -> None:
-        """Handle import folder action."""
-        if not self.controller:
-            return
-
-        dialog = Gtk.FileDialog(title="Select Books Folder")
-
-        def on_open_response(dialog: Any, result: Any) -> None:
-            try:
-                folder = dialog.select_folder_finish(result)
-                controller = self.controller
-                if folder and controller:
+                except Exception:
+                    folder = dialog.select_folder_finish(result)
                     path = folder.get_path()
 
-                    def worker() -> None:
-                        try:
-                            added, updated, failed = controller.import_folder(path)
-                            GLib.idle_add(self.refresh_grid)
-                            GLib.idle_add(
-                                self.show_toast,
-                                f"Folder import complete: {added} added, "
-                                f"{updated} updated, {len(failed)} failed.",
-                            )
-                        except Exception as e:
-                            GLib.idle_add(
-                                self.show_error, f"Error importing folder: {e}"
-                            )
-
-                    threading.Thread(target=worker, daemon=True).start()
+                if path and self.controller:
+                    self.show_category_dialog(path)
             except Exception as e:
-                self.show_error(f"Error importing folder: {e}")
+                self.show_error(f"Error selecting path: {e}")
 
-        dialog.select_folder(self, None, on_open_response)
+        # Show open dialog for both files and folders
+        dialog.open(self, None, on_open_response)
+
+    def show_category_dialog(self, path: str) -> None:
+        """Show dialog to select a category for the import."""
+        dialog = Adw.PreferencesDialog()
+        dialog.set_title("Select Category")
+
+        page = Adw.PreferencesPage()
+        dialog.add(page)
+
+        group = Adw.PreferencesGroup(title="Target Category")
+        page.add(group)
+
+        # Category list (or None for Uncategorized)
+        combo = Gtk.ComboBoxText()
+        combo.append("None", "Uncategorized")
+        categories = self.controller.get_categories()
+        for cat in categories:
+            combo.append(str(cat.id), cat.name)
+        combo.set_active_id("None")
+
+        row = Adw.ActionRow(title="Category")
+        row.add_suffix(combo)
+        group.add(row)
+
+        def on_import_confirmed(button: Gtk.Button) -> None:
+            cat_id = combo.get_active_id()
+            c_id = int(cat_id) if cat_id != "None" else None
+
+            def worker() -> None:
+                try:
+                    added, updated, failed = self.controller.import_path(path, c_id)
+                    GLib.idle_add(self.refresh_grid)
+                    msg = f"Imported: {added} added, {updated} updated, {len(failed)} failed."
+                    GLib.idle_add(self.show_toast, msg)
+                except Exception as e:
+                    GLib.idle_add(self.show_error, f"Error: {e}")
+
+            threading.Thread(target=worker, daemon=True).start()
+            dialog.close()
+
+        save_btn = Gtk.Button(label="Import")
+        save_btn.add_css_class("suggested-action")
+        save_btn.connect("clicked", on_import_confirmed)
+
+        button_group = Adw.PreferencesGroup()
+        button_group.add(save_btn)
+        page.add(button_group)
+
+        dialog.show()
 
     def on_scan_clicked(self, button: Gtk.Button) -> None:
         """Handle the scan button click."""

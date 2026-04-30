@@ -132,34 +132,16 @@ def test_on_category_deleted(mock_controller: MagicMock) -> None:
     window.refresh_grid.assert_called_once_with(None, True)
 
 
-@patch("src.ui.main_window.threading.Thread")
 @patch("src.ui.main_window.Gtk.FileDialog")
 @patch("src.ui.main_window.MainController")
-def test_on_import_file_clicked(
-    mock_controller: MagicMock, mock_file_dialog: MagicMock, mock_thread: MagicMock
+def test_on_import_clicked(
+    mock_controller: MagicMock, mock_file_dialog: MagicMock
 ) -> None:
-    """Test import file dialog initiation."""
+    """Test import dialog initiation."""
     window = MainWindow()
     window.controller = mock_controller
-
-    window.on_import_file_clicked(MagicMock())
-
+    window.on_import_clicked(MagicMock())
     mock_file_dialog.return_value.open.assert_called_once()
-
-
-@patch("src.ui.main_window.threading.Thread")
-@patch("src.ui.main_window.Gtk.FileDialog")
-@patch("src.ui.main_window.MainController")
-def test_on_import_folder_clicked(
-    mock_controller: MagicMock, mock_file_dialog: MagicMock, mock_thread: MagicMock
-) -> None:
-    """Test import folder dialog initiation."""
-    window = MainWindow()
-    window.controller = mock_controller
-
-    window.on_import_folder_clicked(MagicMock())
-
-    mock_file_dialog.return_value.select_folder.assert_called_once()
 
 
 @patch("src.ui.main_window.threading.Thread")
