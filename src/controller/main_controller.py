@@ -88,8 +88,9 @@ class MainController:
     def scan_library(
         self, progress_callback: Optional[Callable[[int, int], None]] = None
     ) -> Tuple[int, int, List[str]]:
-        """Scan the library for books and return (added, updated, failed_files) counts."""
+        """Scan the library for books and return (added, updated, failed_files) counts.
 
+        """
 
         added, updated, failed = self.scanner.scan(
             self.library_dir, progress_callback=progress_callback

@@ -10,14 +10,17 @@ except ImportError:
     # Fallback for platforms where platformdirs is not available
     def user_config_dir(appname: str, *args, **kwargs) -> str:
         """Fallback for user_config_dir when platformdirs is not available."""
+
         return os.path.expanduser(f"~/.config/{appname}")
     
     def user_cache_dir(appname: str, *args, **kwargs) -> str:
         """Fallback for user_cache_dir when platformdirs is not available."""
+
         return os.path.expanduser(f"~/.cache/{appname}")
     
     def user_data_dir(appname: str, *args, **kwargs) -> str:
         """Fallback for user_data_dir when platformdirs is not available."""
+
         return os.path.expanduser(f"~/.local/share/{appname}")
 
 
