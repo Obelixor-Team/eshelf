@@ -68,7 +68,8 @@ class ShelfGrid(Gtk.Box):  # type: ignore
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         w, h = int(120 * zoom_level), int(168 * zoom_level)
         box.set_size_request(w, h)
-        print(f"DEBUG: ShelfGrid tile box set to size: {w}x{h}")
+        box.set_valign(Gtk.Align.CENTER)
+        box.set_vexpand(False)
         box.append(widget)
         list_item.set_child(box)
 
