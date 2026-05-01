@@ -98,25 +98,14 @@ class CoverExtractor:
             return None
 
     def _get_output_path(self, path: Path) -> Path:
-        """Generate a unique output path for the cover image based on file content."""
-        # Use file size and modification time for quick comparison
-        stat = path.stat()
-        file_size = stat.st_size
-        mtime = stat.st_mtime
-
-        # Create a hash based on file size, mtime, and first/last 64KB of content
-        hash_input = f"{file_size}:{mtime}:"
+        """Generate a unique output path for the cover image based on file metadata."""
         try:
-            with open(path, "rb") as f:
-                # Read first 64KB
-                hash_input += f.read(65536).hex()
-                # Read last 64KB (if file is large enough)
-                f.seek(max(0, file_size - 65536))
-                hash_input += f.read(65536).hex()
+            stat = path.stat()
+            # Use file size, mtime, and inode for fast, reliable cache key
+            hash_input = f"{stat.st_size}:{stat.st_mtime}:{stat.st_ino}"
+            file_hash = hashlib.sha256(hash_input.encode()).hexdigest()
         except (OSError, IOError):
-            # Fallback to path-based hash if we can't read the file
+            # Fallback to path-based hash if metadata is inaccessible
             file_hash = hashlib.sha256(str(path.absolute()).encode()).hexdigest()
-            return self.cache_dir / f"{file_hash}.png"
 
-        file_hash = hashlib.sha256(hash_input.encode()).hexdigest()
         return self.cache_dir / f"{file_hash}.png"
