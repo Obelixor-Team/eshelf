@@ -371,3 +371,84 @@ def test_move_book_no_controller() -> None:
 
     window.move_book(mock_book, 1)
     window.refresh_grid.assert_not_called()
+
+
+def test_import_finished_internal() -> None:
+    """Test internal import finished handler."""
+    window = MainWindow()
+    window.import_item = MagicMock()
+    window.hide_progress_bar = MagicMock()
+    window.refresh_grid = MagicMock()
+    window.show_toast = MagicMock()
+
+    # Visible case
+    window.set_visible(True)
+    result = (1, 2, ["error1"])
+    assert window._on_import_finished_internal(result) is False
+    window.import_item.set_sensitive.assert_called_with(True)
+    window.hide_progress_bar.assert_called_once()
+    window.refresh_grid.assert_called_once()
+    window.show_toast.assert_called_once()
+
+    # Invisible case
+    window.set_visible(False)
+    assert window._on_import_finished_internal(result) is False
+    # Verify no more calls happened (except the first one)
+    assert window.refresh_grid.call_count == 1
+
+
+def test_import_error_internal() -> None:
+    """Test internal import error handler."""
+    window = MainWindow()
+    window.import_item = MagicMock()
+    window.hide_progress_bar = MagicMock()
+    window.show_error = MagicMock()
+
+    # Visible case
+    window.set_visible(True)
+    error = Exception("Import failed")
+    assert window._on_import_error_internal(error) is False
+    window.import_item.set_sensitive.assert_called_with(True)
+    window.hide_progress_bar.assert_called_once()
+    window.show_error.assert_called_once_with("Error: Import failed")
+
+    # Invisible case
+    window.set_visible(False)
+    assert window._on_import_error_internal(error) is False
+
+
+def test_cleanup_finished_internal() -> None:
+    """Test internal cleanup finished handler."""
+    window = MainWindow()
+    window.cleanup_item = MagicMock()
+    window.refresh_grid = MagicMock()
+    window.show_toast = MagicMock()
+
+    # Visible case
+    window.set_visible(True)
+    assert window._on_cleanup_finished(5) is False
+    window.cleanup_item.set_sensitive.assert_called_with(True)
+    window.refresh_grid.assert_called_once()
+    window.show_toast.assert_called_once()
+
+    # Invisible case
+    window.set_visible(False)
+    assert window._on_cleanup_finished(5) is False
+
+
+def test_cleanup_error_internal() -> None:
+    """Test internal cleanup error handler."""
+    window = MainWindow()
+    window.cleanup_item = MagicMock()
+    window.show_error = MagicMock()
+
+    # Visible case
+    window.set_visible(True)
+    error = Exception("Cleanup failed")
+    assert window._on_cleanup_error(error) is False
+    window.cleanup_item.set_sensitive.assert_called_with(True)
+    window.show_error.assert_called_once_with("Error during cleanup: Cleanup failed")
+
+    # Invisible case
+    window.set_visible(False)
+    assert window._on_cleanup_error(error) is False

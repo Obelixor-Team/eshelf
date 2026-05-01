@@ -1,7 +1,7 @@
 """Main window for the eShelf application."""
 
 import threading
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple
 
 import gi
 from gi.repository import GLib
@@ -215,10 +215,13 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
     def show_toast(self, message: str) -> None:
         """Show a toast notification."""
 
-        def _show() -> None:
+        def _show() -> bool:
+            if not self.get_visible():
+                return False
             toast = Adw.Toast()
             toast.set_title(message)
             self.toast_overlay.add_toast(toast)
+            return False
 
         GLib.idle_add(_show)
 
@@ -286,6 +289,8 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
     def _apply_grid_update(self, books: List[Book], request_id: int) -> None:
         """Update the grid if the request is still current."""
+        if not self.get_visible():
+            return
         if request_id == self._grid_request_id:
             self.grid.update_books(books)
 
@@ -377,6 +382,30 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         confirm_dialog.connect("response", on_choice)
         confirm_dialog.show()
 
+    def _on_import_finished_internal(
+        self, result: Optional[Tuple[int, int, List[str]]]
+    ) -> bool:
+        """Handle import completion."""
+        if not self.get_visible():
+            return False
+        self.import_item.set_sensitive(True)
+        self.hide_progress_bar()
+        if result:
+            added, updated, failed = result
+            self.refresh_grid()
+            msg = f"Imported: {added} added, {updated} updated, {len(failed)} failed."
+            self.show_toast(msg)
+        return False
+
+    def _on_import_error_internal(self, e: Exception) -> bool:
+        """Handle import error."""
+        if not self.get_visible():
+            return False
+        self.import_item.set_sensitive(True)
+        self.hide_progress_bar()
+        self.show_error(f"Error: {e}")
+        return False
+
     def show_category_dialog(self, path: str) -> None:
         """Show dialog to select a category for the import."""
         dialog = Gtk.Dialog(title="Select Category", transient_for=self, modal=True)
@@ -436,31 +465,25 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             cat_id = combo.get_active_id()
             c_id = int(cat_id) if cat_id != "None" else None
 
-            print(f"DEBUG: Starting import worker for path: {path}, cat_id: {c_id}")
+            self.import_item.set_sensitive(False)
 
             def progress_callback(current: int, total: int) -> None:
                 GLib.idle_add(self.update_progress, current, total)
 
             def worker() -> None:
                 if not self.controller:
+                    GLib.idle_add(self._on_import_finished_internal, None)
                     return
                 try:
-                    print("DEBUG: Inside import worker")
                     GLib.idle_add(self.show_progress_bar)
                     added, updated, failed = self.controller.import_path(
                         path, c_id, progress_callback=progress_callback
                     )
-                    GLib.idle_add(self.refresh_grid)
-                    GLib.idle_add(self.hide_progress_bar)
-                    msg = (
-                        f"Imported: {added} added, {updated} updated, "
-                        f"{len(failed)} failed."
+                    GLib.idle_add(
+                        self._on_import_finished_internal, (added, updated, failed)
                     )
-                    GLib.idle_add(self.show_toast, msg)
                 except Exception as e:
-                    print(f"DEBUG: Error in import worker: {e}")
-                    GLib.idle_add(self.hide_progress_bar)
-                    GLib.idle_add(self.show_error, f"Error: {e}")
+                    GLib.idle_add(self._on_import_error_internal, e)
 
             threading.Thread(target=worker, daemon=True).start()
             dialog.destroy()
@@ -505,6 +528,8 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
     def update_progress(self, current: int, total: int) -> bool:
         """Update progress bar fraction."""
+        if not self.get_visible():
+            return False
         fraction = current / total
         self.progress_bar.set_fraction(fraction)
         self.progress_bar.set_text(f"Scanning... {current}/{total}")
@@ -513,6 +538,8 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
     def on_scan_finished(self, added: int, updated: int, failed: List[str]) -> bool:
         """Handle completion of the scan process."""
+        if not self.get_visible():
+            return False
         self.scan_button.set_sensitive(True)
         self.progress_bar.set_visible(False)
         self.refresh_grid()
@@ -546,17 +573,33 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         if not controller:
             return
 
+        self.cleanup_item.set_sensitive(False)
+
         def worker() -> None:
             try:
                 removed = controller.cleanup_library()
-                GLib.idle_add(self.refresh_grid)
-                GLib.idle_add(
-                    self.show_toast, f"Cleanup complete: {removed} books removed."
-                )
+                GLib.idle_add(self._on_cleanup_finished, removed)
             except Exception as e:
-                GLib.idle_add(self.show_error, f"Error during cleanup: {e}")
+                GLib.idle_add(self._on_cleanup_error, e)
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _on_cleanup_finished(self, removed: int) -> bool:
+        """Handle cleanup completion."""
+        if not self.get_visible():
+            return False
+        self.cleanup_item.set_sensitive(True)
+        self.refresh_grid()
+        self.show_toast(f"Cleanup complete: {removed} books removed.")
+        return False
+
+    def _on_cleanup_error(self, e: Exception) -> bool:
+        """Handle cleanup error."""
+        if not self.get_visible():
+            return False
+        self.cleanup_item.set_sensitive(True)
+        self.show_error(f"Error during cleanup: {e}")
+        return False
 
     def on_settings_clicked(self, button: Gtk.Button) -> None:
         """Handle the settings button click."""
