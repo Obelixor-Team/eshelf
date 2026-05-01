@@ -33,6 +33,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.connect("close-request", self.on_close_request)
 
         self.controller: Optional[MainController] = None
+        self._error_dialog: Optional[Gtk.MessageDialog] = None
 
         # Main layout
         self.main_layout = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
@@ -203,14 +204,41 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
     def show_error(self, message: str) -> None:
         """Show an error message dialog."""
-        dialog = Adw.MessageDialog(
-            transient_for=self,
-            heading="Error",
-            body=message,
-        )
-        dialog.add_response("ok", "OK")
-        dialog.set_default_response("ok")
-        dialog.present()
+
+        def _show_error_on_main_thread() -> bool:
+            if not self.get_visible():
+                return False
+
+            if self._error_dialog:
+                # Append to existing dialog if it's already showing
+                current_text = self._error_dialog.get_property("secondary-text")
+                if message not in (current_text or ""):
+                    new_text = f"{(current_text or '')}\n{message}"
+                    self._error_dialog.set_property("secondary-text", new_text)
+                self._error_dialog.present()
+                return False
+
+            self._error_dialog = Gtk.MessageDialog(
+                transient_for=self,
+                modal=True,
+                message_type=Gtk.MessageType.ERROR,
+                text="Error",
+                secondary_text=message,
+            )
+            self._error_dialog.add_button("OK", Gtk.ResponseType.OK)
+
+            # Set default response so Enter key works
+            self._error_dialog.set_default_response(Gtk.ResponseType.OK)
+
+            def on_response(dialog: Gtk.Dialog, response: int) -> None:
+                self._error_dialog = None
+                dialog.destroy()
+
+            self._error_dialog.connect("response", on_response)
+            self._error_dialog.present()
+            return False
+
+        GLib.idle_add(_show_error_on_main_thread)
 
     def show_toast(self, message: str) -> None:
         """Show a toast notification."""

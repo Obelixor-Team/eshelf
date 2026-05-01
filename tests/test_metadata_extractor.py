@@ -1,7 +1,10 @@
 """Tests for the MetadataExtractor service."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, mock_open, patch
 
+import pytest
+
+from src.services.exceptions import ExtractionError
 from src.services.metadata_extractor import MetadataExtractor
 
 
@@ -13,8 +16,9 @@ def test_extract_unsupported_format() -> None:
     assert author == "Unknown Author"
 
 
+@patch("src.services.metadata_extractor.MetadataExtractor._is_pdf", return_value=True)
 @patch("src.services.metadata_extractor.fitz.open")
-def test_extract_pdf_success(mock_open: MagicMock) -> None:
+def test_extract_pdf_success(mock_open: MagicMock, mock_is_pdf: MagicMock) -> None:
     """Test successful PDF metadata extraction."""
     mock_doc = MagicMock()
     mock_doc.metadata = {"title": "PDF Title", "author": "PDF Author"}
@@ -26,8 +30,9 @@ def test_extract_pdf_success(mock_open: MagicMock) -> None:
     assert author == "PDF Author"
 
 
+@patch("src.services.metadata_extractor.MetadataExtractor._is_pdf", return_value=True)
 @patch("src.services.metadata_extractor.fitz.open")
-def test_extract_pdf_fallback(mock_open: MagicMock) -> None:
+def test_extract_pdf_fallback(mock_open: MagicMock, mock_is_pdf: MagicMock) -> None:
     """Test PDF metadata extraction fallback to filename."""
     mock_doc = MagicMock()
     mock_doc.metadata = {"title": "", "author": None}
@@ -69,8 +74,9 @@ def test_extract_epub_fallback(mock_read_epub: MagicMock) -> None:
     assert author == "Unknown Author"
 
 
+@patch("src.services.metadata_extractor.MetadataExtractor._is_pdf", return_value=True)
 @patch("src.services.metadata_extractor.fitz.open")
-def test_extract_pdf_error(mock_open: MagicMock) -> None:
+def test_extract_pdf_error(mock_open: MagicMock, mock_is_pdf: MagicMock) -> None:
     """Test that PDF extraction errors raise ExtractionError."""
     mock_open.side_effect = Exception("PDF corrupted")
 
@@ -97,8 +103,9 @@ def test_extract_epub_error(mock_read_epub: MagicMock) -> None:
         extractor.extract("corrupted.epub")
 
 
+@patch("src.services.metadata_extractor.MetadataExtractor._is_pdf", return_value=True)
 @patch("src.services.metadata_extractor.fitz.open")
-def test_extract_pdf_only_author(mock_open: MagicMock) -> None:
+def test_extract_pdf_only_author(mock_open: MagicMock, mock_is_pdf: MagicMock) -> None:
     """Test PDF extraction when only author is present."""
     mock_doc = MagicMock()
     mock_doc.metadata = {"title": "", "author": "Only Author"}
@@ -108,6 +115,14 @@ def test_extract_pdf_only_author(mock_open: MagicMock) -> None:
     title, author = extractor.extract("test_book.pdf")
     assert title == "test_book"
     assert author == "Only Author"
+
+
+def test_extract_pdf_invalid_header() -> None:
+    """Test PDF extraction with invalid magic header."""
+    extractor = MetadataExtractor()
+    with patch("builtins.open", mock_open(read_data=b"not-a-pdf")):
+        with pytest.raises(ExtractionError, match="Not a valid PDF file"):
+            extractor.extract("test.pdf")
 
 
 @patch("src.services.metadata_extractor.epub.read_epub")

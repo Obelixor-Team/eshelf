@@ -216,15 +216,46 @@ def test_set_controller(mock_load_config: MagicMock) -> None:
     assert window.sidebar.get_visible() is False
 
 
-@patch("src.ui.main_window.Adw.MessageDialog")
-def test_show_error(mock_dialog: MagicMock) -> None:
+@patch("src.ui.main_window.GLib.idle_add", side_effect=lambda f, *args: f(*args))
+@patch("src.ui.main_window.Gtk.MessageDialog")
+def test_show_error(mock_dialog: MagicMock, mock_idle: MagicMock) -> None:
     """Test show_error displays a message dialog."""
     window = MainWindow()
+    window.set_visible(True)
     window.show_error("Test Error")
 
     mock_dialog.assert_called_once()
     instance = mock_dialog.return_value
     instance.present.assert_called_once()
+
+
+@patch("src.ui.main_window.GLib.idle_add", side_effect=lambda f, *args: f(*args))
+@patch("src.ui.main_window.Gtk.MessageDialog")
+def test_show_error_aggregation(mock_dialog: MagicMock, mock_idle: MagicMock) -> None:
+    """Test show_error aggregates multiple messages."""
+    window = MainWindow()
+    window.set_visible(True)
+
+    window.show_error("Error 1")
+    instance = mock_dialog.return_value
+    instance.get_property.return_value = "Error 1"
+    window.show_error("Error 2")
+
+    # Should only be called once
+    mock_dialog.assert_called_once()
+    # Second call should update the property
+    instance.set_property.assert_called_with("secondary-text", "Error 1\nError 2")
+
+
+@patch("src.ui.main_window.GLib.idle_add", side_effect=lambda f, *args: f(*args))
+def test_show_toast(mock_idle: MagicMock) -> None:
+    """Test show_toast adds a toast to the overlay."""
+    window = MainWindow()
+    window.set_visible(True)
+    window.toast_overlay = MagicMock()
+    window.show_toast("Test Toast")
+
+    window.toast_overlay.add_toast.assert_called_once()
 
 
 @patch("src.ui.main_window.MainController")

@@ -16,11 +16,11 @@ def test_scanner_finds_books() -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create some dummy book files
         book_pdf = Path(tmpdir) / "test_book.pdf"
-        book_pdf.touch()
+        book_pdf.write_bytes(b"%PDF-1.4")
         book_epub = Path(tmpdir) / "another_book.epub"
-        book_epub.touch()
+        book_epub.write_bytes(b"PK\x03\x04")
         ignored_file = Path(tmpdir) / "notes.txt"
-        ignored_file.touch()
+        ignored_file.write_bytes(b"notes")
 
         # Mock dependencies
         mock_repo = MagicMock(spec=BookRepository)
@@ -45,7 +45,7 @@ def test_scanner_updates_existing_books() -> None:
     """Test that the scanner updates books with new covers."""
     with tempfile.TemporaryDirectory() as tmpdir:
         book_pdf = Path(tmpdir) / "test_book.pdf"
-        book_pdf.touch()
+        book_pdf.write_bytes(b"%PDF-1.4")
 
         # Mock repo to return an existing book with a different cover
         mock_repo = MagicMock(spec=BookRepository)
@@ -114,9 +114,9 @@ def test_scanner_extraction_error() -> None:
     """Test that scanner continues when an ExtractionError occurs."""
     with tempfile.TemporaryDirectory() as tmpdir:
         book1 = Path(tmpdir) / "ok.pdf"
-        book1.touch()
+        book1.write_bytes(b"%PDF-1.4")
         book2 = Path(tmpdir) / "error.pdf"
-        book2.touch()
+        book2.write_bytes(b"%PDF-1.4")
 
         mock_repo = MagicMock(spec=BookRepository)
         mock_repo.get_book_by_path.return_value = None
@@ -148,7 +148,7 @@ def test_scanner_progress_callback() -> None:
     """Test that the progress callback is called."""
     with tempfile.TemporaryDirectory() as tmpdir:
         for i in range(3):
-            (Path(tmpdir) / f"book{i}.pdf").touch()
+            (Path(tmpdir) / f"book{i}.pdf").write_bytes(b"%PDF-1.4")
 
         mock_repo = MagicMock(spec=BookRepository)
         mock_repo.get_book_by_path.return_value = None
@@ -176,7 +176,7 @@ def test_scanner_updates_on_metadata_change() -> None:
     """Test that the scanner updates books when title or author changes."""
     with tempfile.TemporaryDirectory() as tmpdir:
         book_pdf = Path(tmpdir) / "test_book.pdf"
-        book_pdf.touch()
+        book_pdf.write_bytes(b"%PDF-1.4")
 
         mock_repo = MagicMock(spec=BookRepository)
         mock_repo.get_book_by_path.return_value = Book(

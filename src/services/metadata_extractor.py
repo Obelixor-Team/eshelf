@@ -34,8 +34,20 @@ class MetadataExtractor:
 
         return path.stem, "Unknown Author"
 
+    def _is_pdf(self, path: Path) -> bool:
+        """Check if the file starts with the PDF magic header."""
+        try:
+            with open(path, "rb") as f:
+                header = f.read(5)
+                return header.startswith(b"%PDF-")
+        except Exception:
+            return False
+
     def _extract_pdf(self, path: Path) -> Tuple[str, str]:
         """Extract metadata from a PDF file."""
+        if not self._is_pdf(path):
+            raise ExtractionError(f"Not a valid PDF file: {path}")
+
         try:
             with fitz.open(path) as doc:
                 meta = doc.metadata

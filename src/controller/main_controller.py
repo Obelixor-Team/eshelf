@@ -92,10 +92,6 @@ class MainController:
         added, updated, failed = self.scanner.scan(
             self.library_dir, progress_callback=progress_callback
         )
-
-        if self.error_callback:
-            for file_path in failed:
-                self.error_callback(f"Failed to process {file_path}: {file_path}")
         return added, updated, failed
 
     def import_folder(
@@ -107,9 +103,6 @@ class MainController:
         added, updated, failed = self.scanner.scan(
             folder_path, progress_callback=progress_callback
         )
-        if self.error_callback:
-            for file_path in failed:
-                self.error_callback(f"Failed to process {file_path}: {file_path}")
         return added, updated, failed
 
     def import_file(self, file_path: str) -> bool:

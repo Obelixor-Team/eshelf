@@ -14,11 +14,15 @@ def test_extract_unsupported_format() -> None:
     assert extractor.extract("book.txt") is None
 
 
+@patch("src.services.extractor.CoverExtractor._is_pdf", return_value=True)
 @patch("src.services.extractor.convert_from_path")
 @patch("pathlib.Path.mkdir")
 @patch("pathlib.Path.stat")
 def test_extract_pdf_success(
-    mock_stat: MagicMock, mock_mkdir: MagicMock, mock_convert: MagicMock
+    mock_stat: MagicMock,
+    mock_mkdir: MagicMock,
+    mock_convert: MagicMock,
+    mock_is_pdf: MagicMock,
 ) -> None:
     """Test successful PDF cover extraction."""
     mock_image = MagicMock()
@@ -34,9 +38,12 @@ def test_extract_pdf_success(
     mock_image.save.assert_called_once()
 
 
+@patch("src.services.extractor.CoverExtractor._is_pdf", return_value=True)
 @patch("src.services.extractor.convert_from_path")
 @patch("pathlib.Path.mkdir")
-def test_extract_pdf_no_images(mock_mkdir: MagicMock, mock_convert: MagicMock) -> None:
+def test_extract_pdf_no_images(
+    mock_mkdir: MagicMock, mock_convert: MagicMock, mock_is_pdf: MagicMock
+) -> None:
     """Test PDF extraction when no images are returned."""
     mock_convert.return_value = []
     extractor = CoverExtractor("/tmp/eshelf_cache")
@@ -49,7 +56,16 @@ def test_extract_pdf_failure(mock_mkdir: MagicMock, mock_convert: MagicMock) -> 
     """Test PDF extraction failure."""
     mock_convert.side_effect = Exception("PDF error")
     extractor = CoverExtractor("/tmp/eshelf_cache")
-    assert extractor.extract("test.pdf") is None
+    # Patch _is_pdf here as well since it's used in extract() -> _extract_pdf()
+    with patch("src.services.extractor.CoverExtractor._is_pdf", return_value=True):
+        assert extractor.extract("test.pdf") is None
+
+
+def test_extract_pdf_invalid_header() -> None:
+    """Test PDF extraction with invalid magic header."""
+    extractor = CoverExtractor("/tmp/eshelf_cache")
+    with patch("builtins.open", mock_open(read_data=b"not-a-pdf")):
+        assert extractor.extract("test.pdf") is None
 
 
 @patch("src.services.extractor.Image")

@@ -47,8 +47,20 @@ class CoverExtractor:
 
         return None
 
+    def _is_pdf(self, path: Path) -> bool:
+        """Check if the file starts with the PDF magic header."""
+        try:
+            with open(path, "rb") as f:
+                header = f.read(5)
+                return header.startswith(b"%PDF-")
+        except Exception:
+            return False
+
     def _extract_pdf(self, path: Path) -> Optional[str]:
         """Extract the first page of a PDF as a cover image."""
+        if not self._is_pdf(path):
+            return None
+
         try:
             # Convert only the first page to an image
             images = convert_from_path(path, first_page=1, last_page=1)

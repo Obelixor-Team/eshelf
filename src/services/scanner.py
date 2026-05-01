@@ -70,11 +70,17 @@ class BookScanner:
 
             file_path = str(file.absolute())
 
+            # Check if file is empty
+            if file.stat().st_size == 0:
+                logger.warning(f"Skipping empty book file: {file_path}")
+                failed_files.append(file_path)
+                continue
+
             # Extract metadata
             try:
                 title, author = self.metadata_extractor.extract(file_path)
             except Exception as e:
-                logger.error(
+                logger.warning(
                     f"Skipping book {file_path} due to metadata extraction error: {e}"
                 )
                 failed_files.append(file_path)
