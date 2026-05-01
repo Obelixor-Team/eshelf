@@ -1,5 +1,14 @@
 """Configuration management for eShelf."""
 
+__all__ = [
+    "DEFAULT_CONFIG",
+    "load_config",
+    "save_config",
+    "user_data_dir",
+    "user_cache_dir",
+    "user_config_dir",
+]
+
 import json
 import os
 from typing import Any, Literal
