@@ -29,6 +29,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.set_default_size(1000, 600)
         self._is_initializing = False
         self._save_timeout_id: Optional[int] = None
+        self._grid_request_id = 0
         self.connect("close-request", self.on_close_request)
 
         self.controller: Optional[MainController] = None
@@ -189,9 +190,14 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                     self.sidebar.select_category(None, True)
 
             # Final grid refresh with category and sort
-            self.refresh_grid(
-                category_id=category_id, all_books=all_books, sort_by=last_sort
-            )
+            self._grid_request_id += 1
+            initial_request_id = self._grid_request_id
+
+            def worker() -> None:
+                books = self._fetch_books(category_id, all_books, None, last_sort)
+                GLib.idle_add(self._apply_grid_update, books, initial_request_id)
+
+            threading.Thread(target=worker, daemon=True).start()
         finally:
             self._is_initializing = False
 
@@ -255,6 +261,34 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             categories = self.controller.get_categories()
             self.sidebar.update_categories(categories)
 
+    def _fetch_books(
+        self,
+        category_id: Optional[int] = None,
+        all_books: bool = True,
+        search_text: Optional[str] = None,
+        sort_by: Optional[str] = None,
+    ) -> List[Book]:
+        """Fetch and sort books from the controller."""
+        if not self.controller:
+            return []
+        if search_text:
+            books = self.controller.search_books(search_text)
+        elif all_books:
+            books = self.controller.get_books(None)
+        elif category_id is None:
+            books = self.controller.get_uncategorized_books()
+        else:
+            books = self.controller.get_books(category_id)
+
+        if sort_by:
+            books = self.controller.sort_books(books, sort_by)
+        return books
+
+    def _apply_grid_update(self, books: List[Book], request_id: int) -> None:
+        """Update the grid if the request is still current."""
+        if request_id == self._grid_request_id:
+            self.grid.update_books(books)
+
     def refresh_grid(
         self,
         category_id: Optional[int] = None,
@@ -263,20 +297,9 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         sort_by: Optional[str] = None,
     ) -> None:
         """Update the grid with books from the controller."""
-        if self.controller:
-            if search_text:
-                books = self.controller.search_books(search_text)
-            elif all_books:
-                books = self.controller.get_books(None)
-            elif category_id is None:
-                books = self.controller.get_uncategorized_books()
-            else:
-                books = self.controller.get_books(category_id)
-
-            if sort_by:
-                books = self.controller.sort_books(books, sort_by)
-
-            self.grid.update_books(books)
+        self._grid_request_id += 1
+        books = self._fetch_books(category_id, all_books, search_text, sort_by)
+        self.grid.update_books(books)
 
     def on_category_selected(self, category_id: Optional[int], all_books: bool) -> None:
         """Handle category selection from sidebar."""
