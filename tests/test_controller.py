@@ -1,6 +1,7 @@
 """Tests for the MainController."""
 
 import os
+import subprocess
 import tempfile
 from datetime import datetime
 from typing import Generator
@@ -191,3 +192,100 @@ def test_controller_import_file_failure(
         mock_path.return_value.suffix = ".txt"
         success = controller.import_file("/path/to/file.txt")
         assert success is False
+
+
+def test_controller_category_management(
+    controller_env: tuple[MainController, str],
+) -> None:
+    """Test category creation, deletion and retrieval via controller."""
+    controller, _ = controller_env
+    mock_service = MagicMock()
+    controller.book_service = mock_service
+
+    # Get categories
+    controller.get_categories()
+    mock_service.get_categories.assert_called_once()
+
+    # Create category
+    controller.create_category("Fiction")
+    mock_service.create_category.assert_called_once_with("Fiction")
+
+    # Delete category
+    controller.delete_category(1)
+    mock_service.delete_category.assert_called_once_with(1)
+
+    # Move book
+    controller.move_book_to_category("/path/to/book.pdf", 1)
+    mock_service.move_book_to_category.assert_called_once_with("/path/to/book.pdf", 1)
+
+
+def test_controller_clear_library(controller_env: tuple[MainController, str]) -> None:
+    """Test clearing the library."""
+    controller, _ = controller_env
+    mock_repo = MagicMock()
+    controller.repository = mock_repo
+
+    # Mock cache dir to exist and have a file
+    with (
+        patch("src.controller.main_controller.Path.exists", return_value=True),
+        patch("src.controller.main_controller.Path.is_dir", return_value=True),
+        patch("src.controller.main_controller.Path.iterdir") as mock_iter,
+    ):
+        mock_file = MagicMock()
+        mock_iter.return_value = [mock_file]
+
+        controller.clear_library()
+
+        mock_repo.clear.assert_called_once()
+        mock_file.unlink.assert_called_once()
+
+
+def test_controller_import_path(controller_env: tuple[MainController, str]) -> None:
+    """Test import_path for files, folders, and invalid paths."""
+    controller, _ = controller_env
+
+    # Mock import_file and import_folder
+    controller.import_file = MagicMock(return_value=True)
+    controller.import_folder = MagicMock(return_value=(1, 0, []))
+    controller.move_book_to_category = MagicMock()
+
+    with patch("src.controller.main_controller.Path") as mock_path:
+        # Case 1: Is file
+        mock_path.return_value.is_file.return_value = True
+        mock_path.return_value.is_dir.return_value = False
+        res = controller.import_path("/path/to/file.pdf", category_id=1)
+        assert res == (1, 0, [])
+        controller.import_file.assert_called_with("/path/to/file.pdf")
+        controller.move_book_to_category.assert_called_with("/path/to/file.pdf", 1)
+
+        # Case 2: Is dir
+        mock_path.return_value.is_file.return_value = False
+        mock_path.return_value.is_dir.return_value = True
+        res = controller.import_path("/path/to/dir", category_id=1)
+        assert res == (1, 0, [])
+        controller.import_folder.assert_called_with(
+            "/path/to/dir", progress_callback=None
+        )
+
+        # Case 3: Neither
+        mock_path.return_value.is_file.return_value = False
+        mock_path.return_value.is_dir.return_value = False
+        res = controller.import_path("/path/to/invalid")
+        assert res == (0, 0, ["/path/to/invalid"])
+
+
+@patch("subprocess.run")
+def test_controller_open_book_failure(
+    mock_run: MagicMock, controller_env: tuple[MainController, str]
+) -> None:
+    """Test opening a book fails."""
+    controller, _ = controller_env
+    controller.error_callback = MagicMock()
+
+    mock_run.side_effect = subprocess.CalledProcessError(
+        1, ["xdg-open"], stderr="Error"
+    )
+    book = Book(path="/path/to/book.pdf", title="Title", author="Author")
+
+    controller.open_book(book)
+    controller.error_callback.assert_called_once()

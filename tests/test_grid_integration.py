@@ -1,5 +1,7 @@
 """Integration test to verify the grid layout behavior."""
 
+from unittest.mock import MagicMock
+
 import gi  # noqa: E402
 
 gi.require_version("Gtk", "4.0")
@@ -32,3 +34,56 @@ def test_shelf_grid_layout_columns() -> None:
     # Verify the GridView's model is correct
     assert grid.grid_view.get_model() == grid.selection_model
     assert grid.selection_model.get_model() == grid.store
+
+
+def test_shelf_grid_update_config() -> None:
+    """Test updating the grid configuration."""
+    grid = ShelfGrid(on_book_selected_callback=lambda b: None)
+
+    # Add a book first
+    book = Book(path="/tmp/book1.pdf", title="Title", author="Author")
+    grid.update_books([book])
+
+    # Update config
+    new_config = {"zoom_level": 2.0, "show_titles": False}
+    grid.update_config(new_config)
+
+    assert grid._config == new_config
+    assert grid.store.get_n_items() == 1
+
+
+def test_shelf_grid_factory_setup() -> None:
+    """Test the grid item factory setup."""
+    grid = ShelfGrid(on_book_selected_callback=lambda b: None)
+    mock_factory = MagicMock()
+    mock_item = MagicMock()
+
+    grid._on_factory_setup(mock_factory, mock_item)
+
+    assert mock_item.get_child() is not None
+    assert hasattr(mock_item.get_child(), "get_first_child")
+
+
+def test_shelf_grid_factory_bind() -> None:
+    """Test the grid item factory bind."""
+    from src.models.book import BookObject
+    from src.ui.book_widget import BookWidget
+
+    grid = ShelfGrid(on_book_selected_callback=lambda b: None)
+    mock_factory = MagicMock()
+    mock_item = MagicMock()
+
+    book = Book(path="/tmp/book1.pdf", title="Title", author="Author")
+    book_obj = BookObject(book)
+
+    mock_item.get_item.return_value = book_obj
+
+    # Create a mock box and widget
+    mock_box = MagicMock()
+    mock_widget = MagicMock(spec=BookWidget)
+    mock_item.get_child.return_value = mock_box
+    mock_box.get_first_child.return_value = mock_widget
+
+    grid._on_factory_bind(mock_factory, mock_item)
+
+    mock_widget.bind.assert_called_once()

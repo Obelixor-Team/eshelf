@@ -100,3 +100,35 @@ def test_book_service_update_metadata(
     books = service.get_books()
     assert books[0].title == "T2"
     assert books[0].author == "A2"
+
+
+def test_book_service_category_management(
+    book_service_env: tuple[BookService, str],
+) -> None:
+    """Test category management in BookService."""
+    service, _ = book_service_env
+
+    # Create
+    cat_id = service.create_category("Fiction")
+    assert cat_id is not None
+
+    # Get categories
+    categories = service.get_categories()
+    assert len(categories) == 1
+    assert categories[0].name == "Fiction"
+
+    # Move book to category
+    service.add_book(Book(path="1", title="T1", author="A1"))
+    service.move_book_to_category("1", cat_id)
+
+    # Check categorized
+    books = service.get_books(category_id=cat_id)
+    assert len(books) == 1
+
+    # Check uncategorized
+    uncat = service.get_uncategorized_books()
+    assert len(uncat) == 0
+
+    # Delete category
+    service.delete_category(cat_id)
+    assert len(service.get_categories()) == 0

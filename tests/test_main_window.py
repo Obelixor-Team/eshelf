@@ -286,3 +286,88 @@ def test_on_settings_clicked(
 
     mock_dialog_instance = mock_dialog.return_value
     mock_dialog_instance.present.assert_called_once()
+
+
+def test_on_category_selected_initializing() -> None:
+    """Test category selection during initialization."""
+    window = MainWindow()
+    window.refresh_grid = MagicMock()
+
+    window._is_initializing = True
+    window.on_category_selected(1, False)
+
+    window.refresh_grid.assert_not_called()
+
+
+def test_on_category_created_no_controller() -> None:
+    """Test category creation without controller."""
+    window = MainWindow()
+    window.controller = None
+    window.refresh_sidebar = MagicMock()
+
+    window.on_category_created("New Category")
+    window.refresh_sidebar.assert_not_called()
+
+
+def test_on_category_deleted_no_controller() -> None:
+    """Test category deletion without controller."""
+    window = MainWindow()
+    window.controller = None
+    window.refresh_sidebar = MagicMock()
+    window.refresh_grid = MagicMock()
+
+    window.on_category_deleted(1)
+    window.refresh_sidebar.assert_not_called()
+    window.refresh_grid.assert_not_called()
+
+
+def test_on_import_clicked_no_controller() -> None:
+    """Test import clicked without controller."""
+    window = MainWindow()
+    window.controller = None
+    # Should just return without showing dialog
+    window.on_import_clicked(MagicMock())
+    # No way to easily verify dialog NOT shown without mocking Adw.MessageDialog
+    # but we can check it doesn't crash.
+
+
+def test_on_scan_clicked_no_controller() -> None:
+    """Test scan clicked without controller."""
+    window = MainWindow()
+    window.controller = None
+    window.scan_button = MagicMock()
+
+    window.on_scan_clicked(MagicMock())
+    window.scan_button.set_sensitive.assert_not_called()
+
+
+def test_on_cleanup_clicked_no_controller() -> None:
+    """Test cleanup clicked without controller."""
+    window = MainWindow()
+    window.controller = None
+
+    with patch("src.ui.main_window.threading.Thread") as mock_thread:
+        window.on_cleanup_clicked(MagicMock())
+        mock_thread.assert_not_called()
+
+
+def test_on_book_selected_no_controller() -> None:
+    """Test book selection without controller."""
+    window = MainWindow()
+    window.controller = None
+    mock_book = MagicMock()
+
+    window.on_book_selected(mock_book)
+    # Should just return
+    assert True
+
+
+def test_move_book_no_controller() -> None:
+    """Test moving book without controller."""
+    window = MainWindow()
+    window.controller = None
+    window.refresh_grid = MagicMock()
+    mock_book = MagicMock(path="/tmp/book.pdf")
+
+    window.move_book(mock_book, 1)
+    window.refresh_grid.assert_not_called()

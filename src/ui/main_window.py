@@ -359,6 +359,8 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         combo.append("None", "Uncategorized")
 
         def refresh_combo() -> None:
+            if not self.controller:
+                return
             combo.remove_all()
             combo.append("None", "Uncategorized")
             for cat in self.controller.get_categories():
@@ -402,6 +404,8 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                 GLib.idle_add(self.update_progress, current, total)
 
             def worker() -> None:
+                if not self.controller:
+                    return
                 try:
                     print("DEBUG: Inside import worker")
                     GLib.idle_add(self.show_progress_bar)
@@ -410,7 +414,10 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                     )
                     GLib.idle_add(self.refresh_grid)
                     GLib.idle_add(self.hide_progress_bar)
-                    msg = f"Imported: {added} added, {updated} updated, {len(failed)} failed."
+                    msg = (
+                        f"Imported: {added} added, {updated} updated, "
+                        f"{len(failed)} failed."
+                    )
                     GLib.idle_add(self.show_toast, msg)
                 except Exception as e:
                     print(f"DEBUG: Error in import worker: {e}")

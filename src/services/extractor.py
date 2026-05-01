@@ -11,8 +11,6 @@ from ebooklib import epub
 from pdf2image import convert_from_path
 from PIL import Image
 
-from src.services.exceptions import ExtractionError
-
 logger = logging.getLogger(__name__)
 
 
@@ -96,7 +94,8 @@ class CoverExtractor:
 
             return str(output_path)
         except Exception as e:
-            raise ExtractionError(f"Error extracting EPUB cover from {path}") from e
+            logger.warning(f"Could not extract EPUB cover from {path}: {e}")
+            return None
 
     def _get_output_path(self, path: Path) -> Path:
         """Generate a unique output path for the cover image based on file content."""
