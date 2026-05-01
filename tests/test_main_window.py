@@ -47,13 +47,13 @@ def test_on_category_selected() -> None:
     """Test category selection."""
     window = MainWindow()
     window.refresh_grid = MagicMock()
-    window.save_ui_state = MagicMock()
+    window.request_save_ui_state = MagicMock()
 
     window._is_initializing = False
     window.on_category_selected(1, False)
 
     window.refresh_grid.assert_called_once_with(1, False)
-    window.save_ui_state.assert_called_once()
+    window.request_save_ui_state.assert_called_once()
 
 
 @patch("src.ui.main_window.save_config")
@@ -90,7 +90,7 @@ def test_on_sort_changed(mock_save_config: MagicMock) -> None:
     """Test sort option change."""
     window = MainWindow()
     window.refresh_grid = MagicMock()
-    window.save_ui_state = MagicMock()
+    window.request_save_ui_state = MagicMock()
 
     # Mocking Gtk.DropDown selected item
     mock_item = MagicMock()
@@ -101,7 +101,7 @@ def test_on_sort_changed(mock_save_config: MagicMock) -> None:
 
     window.on_sort_changed(mock_combo)
     window.refresh_grid.assert_called_once_with(sort_by="Author")
-    window.save_ui_state.assert_called_once()
+    window.request_save_ui_state.assert_called_once()
 
 
 @patch("src.ui.main_window.MainController")

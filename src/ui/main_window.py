@@ -28,6 +28,8 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.set_title("eShelf")
         self.set_default_size(1000, 600)
         self._is_initializing = False
+        self._save_timeout_id: Optional[int] = None
+        self.connect("close-request", self.on_close_request)
 
         self.controller: Optional[MainController] = None
 
@@ -214,8 +216,20 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
         GLib.idle_add(_show)
 
-    def save_ui_state(self) -> None:
+    def on_close_request(self, window: Adw.ApplicationWindow) -> bool:
+        """Ensure UI state is saved before closing."""
+        self.save_ui_state()
+        return False
+
+    def request_save_ui_state(self) -> None:
+        """Request a debounced save of the UI state."""
+        if self._save_timeout_id is not None:
+            GLib.source_remove(self._save_timeout_id)
+        self._save_timeout_id = GLib.timeout_add(1000, self.save_ui_state)
+
+    def save_ui_state(self) -> bool:
         """Save current UI state to configuration."""
+        self._save_timeout_id = None
         config = load_config()
 
         # Sidebar visibility
@@ -233,6 +247,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             config["last_category_identifier"] = "all"
 
         save_config(config)
+        return False
 
     def refresh_sidebar(self) -> None:
         """Update the sidebar with current categories."""
@@ -268,7 +283,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         if self._is_initializing:
             return
         self.refresh_grid(category_id, all_books)
-        self.save_ui_state()
+        self.request_save_ui_state()
 
     def on_category_created(self, name: str) -> None:
         """Handle new category creation."""
@@ -291,7 +306,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         else:
             self.sidebar.set_visible(True)
             self.sidebar_toggle.set_icon_name("sidebar-collapse-symbolic")
-        self.save_ui_state()
+        self.request_save_ui_state()
 
     def on_import_clicked(self, item: Gtk.Button) -> None:
         """Unified import handler."""
@@ -500,7 +515,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         else:
             sort_option = "Title"
         self.refresh_grid(sort_by=sort_option)
-        self.save_ui_state()
+        self.request_save_ui_state()
 
     def on_cleanup_clicked(self, button: Gtk.Button) -> None:
         """Handle the cleanup button click."""
