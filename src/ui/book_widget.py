@@ -75,6 +75,12 @@ class BookWidget(Gtk.Box):  # type: ignore
         self.right_click_gesture.connect("pressed", self.on_right_clicked)
         self.add_controller(self.right_click_gesture)
 
+        # Drag Source
+        self.drag_source = Gtk.DragSource()
+        self.drag_source.set_actions(Gdk.DragAction.MOVE)
+        self.drag_source.connect("prepare", self._on_drag_prepare)
+        self.add_controller(self.drag_source)
+
     def bind(
         self,
         book: Book,
@@ -99,6 +105,20 @@ class BookWidget(Gtk.Box):  # type: ignore
                 self.image.set_paintable(None)
         else:
             self.image.set_paintable(None)
+
+    def _on_drag_prepare(
+        self, source: Gtk.DragSource, x: float, y: float
+    ) -> Optional[Gdk.ContentProvider]:
+        """Prepare the drag content (book path)."""
+        if not self.book:
+            return None
+
+        # Set drag icon
+        paintable = self.image.get_paintable()
+        if paintable:
+            source.set_icon(paintable, int(x), int(y))
+
+        return Gdk.ContentProvider.new_for_value(self.book.path)
 
     def _on_clicked(
         self,

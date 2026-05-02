@@ -6,7 +6,8 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gtk  # noqa: E402
+gi.require_version("Gdk", "4.0")
+from gi.repository import Adw, Gdk, Gtk  # noqa: E402
 
 from src.models.category import Category  # noqa: E402
 
@@ -28,6 +29,7 @@ class Sidebar(Adw.Bin):  # type: ignore
         on_category_selected: Callable[[Optional[int], bool], None],
         on_category_created: Callable[[str], None],
         on_category_deleted: Callable[[int], None],
+        on_book_dropped: Optional[Callable[[str, Optional[int]], None]] = None,
     ) -> None:
         """Initialize the Sidebar.
 
@@ -35,11 +37,13 @@ class Sidebar(Adw.Bin):  # type: ignore
             on_category_selected (Callable): Callback when a category is selected.
             on_category_created (Callable): Callback when a new category is created.
             on_category_deleted (Callable): Callback when a category is deleted.
+            on_book_dropped (Callable, optional): Callback when a book is dropped.
         """
         super().__init__()
         self.on_category_selected = on_category_selected
         self.on_category_created = on_category_created
         self.on_category_deleted = on_category_deleted
+        self.on_book_dropped = on_book_dropped
 
         # Main container
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
@@ -137,7 +141,32 @@ class Sidebar(Adw.Bin):  # type: ignore
         box.append(label)
 
         row.set_child(box)
+
+        # Drop Target
+        drop_target = Gtk.DropTarget.new(str, Gdk.DragAction.MOVE)
+        drop_target.connect("drop", self.on_book_drop, identifier)
+        row.add_controller(drop_target)
+
         return row
+
+    def on_book_drop(
+        self, target: Gtk.DropTarget, value: str, x: float, y: float, identifier: str
+    ) -> bool:
+        """Handle a book being dropped on a category row."""
+        if not self.on_book_dropped:
+            return False
+
+        category_id: Optional[int] = None
+        if identifier == "all":
+            # Dragging to "All Books" doesn't make much sense for organization
+            return False
+        elif identifier == "uncategorized":
+            category_id = None
+        else:
+            category_id = int(identifier)
+
+        self.on_book_dropped(value, category_id)
+        return True
 
     def on_row_selected(
         self, list_box: Gtk.ListBox, row: Optional[CategoryRow]

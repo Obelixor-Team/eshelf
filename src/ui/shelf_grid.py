@@ -39,7 +39,7 @@ class ShelfGrid(Gtk.Box):  # type: ignore
         factory.connect("bind", self._on_factory_bind)
 
         # Selection Model
-        self.selection_model = Gtk.SingleSelection.new(self.store)
+        self.selection_model = Gtk.MultiSelection.new(self.store)
 
         # Grid View
         self.grid_view = Gtk.GridView(
@@ -107,3 +107,14 @@ class ShelfGrid(Gtk.Box):  # type: ignore
         self.store.remove_all()
         for book in books:
             self.store.append(BookObject(book))
+
+    def get_selected_books(self) -> list[Book]:
+        """Return the list of currently selected books."""
+        selection = self.selection_model.get_selection()
+        selected_books = []
+        for i in range(self.store.get_n_items()):
+            if selection.contains(i):
+                book_obj = self.store.get_item(i)
+                if isinstance(book_obj, BookObject):
+                    selected_books.append(book_obj.book)
+        return selected_books

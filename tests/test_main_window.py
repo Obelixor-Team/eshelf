@@ -132,17 +132,22 @@ def test_on_category_deleted(mock_controller: MagicMock) -> None:
     window.refresh_grid.assert_called_once_with(None, True)
 
 
+@patch("src.ui.main_window.Adw.AlertDialog")
 @patch("src.ui.main_window.Gtk.FileDialog")
 @patch("src.ui.main_window.MainController")
 def test_on_import_clicked(
-    mock_controller: MagicMock, mock_file_dialog: MagicMock
+    mock_controller: MagicMock,
+    mock_file_dialog: MagicMock,
+    mock_alert_dialog: MagicMock,
 ) -> None:
     """Test import dialog initiation."""
     window = MainWindow()
     window.controller = mock_controller
     window.on_import_clicked(MagicMock())
-    # Bypassing dialog check due to structure change
-    pass
+
+    mock_alert_dialog.assert_called_once()
+    instance = mock_alert_dialog.return_value
+    instance.choose.assert_called_once()
 
 
 @patch("src.ui.main_window.threading.Thread")
@@ -217,7 +222,7 @@ def test_set_controller(mock_load_config: MagicMock) -> None:
 
 
 @patch("src.ui.main_window.GLib.idle_add", side_effect=lambda f, *args: f(*args))
-@patch("src.ui.main_window.Gtk.MessageDialog")
+@patch("src.ui.main_window.Adw.AlertDialog")
 def test_show_error(mock_dialog: MagicMock, mock_idle: MagicMock) -> None:
     """Test show_error displays a message dialog."""
     window = MainWindow()
@@ -226,11 +231,11 @@ def test_show_error(mock_dialog: MagicMock, mock_idle: MagicMock) -> None:
 
     mock_dialog.assert_called_once()
     instance = mock_dialog.return_value
-    instance.present.assert_called_once()
+    instance.choose.assert_called_once()
 
 
 @patch("src.ui.main_window.GLib.idle_add", side_effect=lambda f, *args: f(*args))
-@patch("src.ui.main_window.Gtk.MessageDialog")
+@patch("src.ui.main_window.Adw.AlertDialog")
 def test_show_error_aggregation(mock_dialog: MagicMock, mock_idle: MagicMock) -> None:
     """Test show_error aggregates multiple messages."""
     window = MainWindow()
@@ -244,7 +249,7 @@ def test_show_error_aggregation(mock_dialog: MagicMock, mock_idle: MagicMock) ->
     # Should only be called once
     mock_dialog.assert_called_once()
     # Second call should update the property
-    instance.set_property.assert_called_with("secondary-text", "Error 1\nError 2")
+    instance.set_property.assert_called_with("body", "Error 1\nError 2")
 
 
 @patch("src.ui.main_window.GLib.idle_add", side_effect=lambda f, *args: f(*args))

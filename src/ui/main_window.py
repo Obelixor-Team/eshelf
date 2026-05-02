@@ -47,6 +47,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             on_category_selected=self.on_category_selected,
             on_category_created=self.on_category_created,
             on_category_deleted=self.on_category_deleted,
+            on_book_dropped=self.on_book_dropped,
         )
         self.sidebar.set_size_request(250, -1)
         self.main_layout.append(self.sidebar)
@@ -211,31 +212,25 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
             if self._error_dialog:
                 # Append to existing dialog if it's already showing
-                current_text = self._error_dialog.get_property("secondary-text")
+                current_text = self._error_dialog.get_property("body")
                 if message not in (current_text or ""):
                     new_text = f"{(current_text or '')}\n{message}"
-                    self._error_dialog.set_property("secondary-text", new_text)
+                    self._error_dialog.set_property("body", new_text)
                 self._error_dialog.present()
                 return False
 
-            self._error_dialog = Gtk.MessageDialog(
-                transient_for=self,
-                modal=True,
-                message_type=Gtk.MessageType.ERROR,
-                text="Error",
-                secondary_text=message,
+            self._error_dialog = Adw.AlertDialog(
+                heading="Error",
+                body=message,
             )
-            self._error_dialog.add_button("OK", Gtk.ResponseType.OK)
+            self._error_dialog.add_response("ok", "OK")
+            self._error_dialog.set_default_response("ok")
+            self._error_dialog.set_close_response("ok")
 
-            # Set default response so Enter key works
-            self._error_dialog.set_default_response(Gtk.ResponseType.OK)
-
-            def on_response(dialog: Gtk.Dialog, response: int) -> None:
+            def on_response(dialog: Adw.AlertDialog, response: str) -> None:
                 self._error_dialog = None
-                dialog.destroy()
 
-            self._error_dialog.connect("response", on_response)
-            self._error_dialog.present()
+            self._error_dialog.choose(self, None, on_response)
             return False
 
         GLib.idle_add(_show_error_on_main_thread)
@@ -354,6 +349,25 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             self.refresh_sidebar()
             self.refresh_grid(None, True)
 
+    def on_book_dropped(self, book_path: str, category_id: Optional[int]) -> None:
+        """Handle book dropped on a category."""
+        if self.controller:
+            # We move only the dropped book, or should we move the whole selection?
+            # Standard behavior is usually moving the dropped item(s).
+            # If the dropped item is part of the selection, move the whole selection.
+            selected_books = self.grid.get_selected_books()
+            paths = [b.path for b in selected_books]
+
+            if book_path in paths:
+                # Move all selected books
+                for path in paths:
+                    self.controller.move_book_to_category(path, category_id)
+            else:
+                # Move only the dropped book
+                self.controller.move_book_to_category(book_path, category_id)
+
+            self.refresh_grid()
+
     def on_sidebar_toggle_clicked(self, button: Gtk.Button) -> None:
         """Toggle sidebar visibility."""
         if self.sidebar.get_visible():
@@ -369,8 +383,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         if not self.controller:
             return
 
-        confirm_dialog = Adw.MessageDialog(
-            transient_for=self,
+        confirm_dialog = Adw.AlertDialog(
             heading="Import Type",
             body="Do you want to import a file or a folder?",
         )
@@ -378,7 +391,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         confirm_dialog.add_response("folder", "Folder")
         confirm_dialog.add_response("cancel", "Cancel")
 
-        def on_choice(d: Adw.MessageDialog, response: str) -> None:
+        def on_choice(d: Adw.AlertDialog, response: str) -> None:
             if response == "file":
                 file_dialog = Gtk.FileDialog(title="Select File to Import")
                 file_dialog.set_modal(True)
@@ -407,8 +420,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
                 folder_dialog.select_folder(self, None, on_folder_response)
 
-        confirm_dialog.connect("response", on_choice)
-        confirm_dialog.show()
+        confirm_dialog.choose(self, None, on_choice)
 
     def _on_import_finished_internal(
         self, result: Optional[Tuple[int, int, List[str]]]
@@ -755,8 +767,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
         def on_clear_clicked(button: Gtk.Button) -> None:
             # Confirm dialog
-            confirm_dialog = Adw.MessageDialog(
-                transient_for=self,
+            confirm_dialog = Adw.AlertDialog(
                 heading="Clear Library?",
                 body=(
                     "This will permanently delete all book metadata and cached cover "
@@ -771,7 +782,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             confirm_dialog.set_default_response("cancel")
             confirm_dialog.set_close_response("cancel")
 
-            def on_response(d: Adw.MessageDialog, response: str) -> None:
+            def on_response(d: Adw.AlertDialog, response: str) -> None:
                 if response == "clear" and self.controller:
                     try:
                         self.controller.clear_library()
@@ -781,8 +792,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                     except Exception as e:
                         self.show_error(f"Error clearing library: {e}")
 
-            confirm_dialog.connect("response", on_response)
-            confirm_dialog.show()
+            confirm_dialog.choose(self, None, on_response)
 
         clear_btn.connect("clicked", on_clear_clicked)
         clear_row.add_suffix(clear_btn)
@@ -838,6 +848,14 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         if not self.controller:
             return
 
+        # Get selected books
+        selected_books = self.grid.get_selected_books()
+
+        # If the right-clicked book is not in selection, select only it
+        if book not in selected_books:
+            # For now, use the single book if selection doesn't contain it
+            selected_books = [book]
+
         # Create a popover for actions
         popover = Gtk.Popover()
         popover.set_parent(widget)
@@ -849,37 +867,66 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         box.set_margin_end(6)
         popover.set_child(box)
 
+        # Action for multiple books
+        count = len(selected_books)
+        label_suffix = f" ({count} books)" if count > 1 else ""
+
         # Open action
-        open_btn = Gtk.Button(label="Open")
-        open_btn.connect("clicked", lambda _: self.on_book_selected(book))
+        # Open action
+        open_btn = Gtk.Button(label=f"Open{label_suffix}")
+
+        def on_open_clicked(_: Gtk.Button) -> None:
+            for b in selected_books:
+                self.on_book_selected(b)
+            popover.popdown()
+
+        open_btn.connect("clicked", on_open_clicked)
         box.append(open_btn)
 
-        # Edit metadata action
-        edit_btn = Gtk.Button(label="Edit Metadata")
-        edit_btn.connect(
-            "clicked", lambda _: self.on_edit_metadata_clicked(book, popover)
-        )
-        box.append(edit_btn)
+        # Edit metadata action (only if one book)
+        if count == 1:
+            edit_btn = Gtk.Button(label="Edit Metadata")
+            edit_btn.connect(
+                "clicked", lambda _: self.on_edit_metadata_clicked(book, popover)
+            )
+            box.append(edit_btn)
 
         # Separator
         separator = Gtk.Separator()
         box.append(separator)
 
         # "Uncategorized" option
-        uncat_btn = Gtk.Button(label="Move to Uncategorized")
-        uncat_btn.connect("clicked", lambda _: self.move_book(book, None, popover))
+        uncat_btn = Gtk.Button(label=f"Move to Uncategorized{label_suffix}")
+        uncat_btn.connect(
+            "clicked", lambda _: self.move_books(selected_books, None, popover)
+        )
         box.append(uncat_btn)
 
         # Category options
         categories = self.controller.get_categories()
         for cat in categories:
-            btn = Gtk.Button(label=f"Move to {cat.name}")
+            btn = Gtk.Button(label=f"Move to {cat.name}{label_suffix}")
             btn.connect(
-                "clicked", lambda _, c_id=cat.id: self.move_book(book, c_id, popover)
+                "clicked",
+                lambda _, c_id=cat.id: self.move_books(selected_books, c_id, popover),
             )
             box.append(btn)
 
         popover.popup()
+
+    def move_books(
+        self,
+        books: List[Book],
+        category_id: Optional[int],
+        popover: Optional[Gtk.Popover] = None,
+    ) -> None:
+        """Move multiple books to a category and refresh view."""
+        if self.controller:
+            for book in books:
+                self.controller.move_book_to_category(book.path, category_id)
+            self.refresh_grid()
+            if popover:
+                popover.popdown()
 
     def move_book(
         self,
@@ -888,11 +935,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         popover: Optional[Gtk.Popover] = None,
     ) -> None:
         """Move a book to a category and refresh view."""
-        if self.controller:
-            self.controller.move_book_to_category(book.path, category_id)
-            self.refresh_grid()
-            if popover:
-                popover.popdown()
+        self.move_books([book], category_id, popover)
 
     def on_edit_metadata_clicked(self, book: Book, popover: Gtk.Popover) -> None:
         """Show a dialog to edit book metadata."""
