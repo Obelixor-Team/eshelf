@@ -100,7 +100,9 @@ def test_controller_import_folder(controller_env: tuple[MainController, str]) ->
     assert added == 2
     assert updated == 1
     assert len(failed) == 0
-    mock_scanner.scan.assert_called_once_with("/path/to/folder", progress_callback=None)
+    mock_scanner.scan.assert_called_once_with(
+        "/path/to/folder", progress_callback=None, recursive=True
+    )
 
 
 def test_controller_import_file_success(
@@ -264,7 +266,7 @@ def test_controller_import_path(controller_env: tuple[MainController, str]) -> N
         res = controller.import_path("/path/to/dir", category_id=1)
         assert res == (1, 0, [])
         controller.import_folder.assert_called_with(
-            "/path/to/dir", progress_callback=None
+            "/path/to/dir", progress_callback=None, recursive=True
         )
 
         # Case 3: Neither

@@ -38,12 +38,14 @@ class BookScanner:
         self,
         directory: str,
         progress_callback: Optional[Callable[[int, int], None]] = None,
+        recursive: bool = True,
     ) -> Tuple[int, int, List[str]]:
         """Scan a directory for books and update the repository.
 
         Args:
             directory (str): The directory path to scan.
             progress_callback (callable, optional): Callback for progress updates.
+            recursive (bool): Whether to scan subdirectories recursively.
 
         Returns:
             Tuple[int, int, List[str]]:
@@ -58,8 +60,9 @@ class BookScanner:
             raise ValueError(f"Provided path is not a directory: {directory}")
 
         # Find all supported files first to determine total count
+        pattern = "**/*" if recursive else "*"
         all_files = [
-            f for f in dir_path.rglob("*") if f.suffix.lower() in (".pdf", ".epub")
+            f for f in dir_path.glob(pattern) if f.suffix.lower() in (".pdf", ".epub")
         ]
         total_files = len(all_files)
 

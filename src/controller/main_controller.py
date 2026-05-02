@@ -98,10 +98,11 @@ class MainController:
         self,
         folder_path: str,
         progress_callback: Optional[Callable[[int, int], None]] = None,
+        recursive: bool = True,
     ) -> Tuple[int, int, List[str]]:
         """Import books from a specific folder."""
         added, updated, failed = self.scanner.scan(
-            folder_path, progress_callback=progress_callback
+            folder_path, progress_callback=progress_callback, recursive=recursive
         )
         return added, updated, failed
 
@@ -136,6 +137,7 @@ class MainController:
         path: str,
         category_id: Optional[int] = None,
         progress_callback: Optional[Callable[[int, int], None]] = None,
+        recursive: bool = True,
     ) -> Tuple[int, int, List[str]]:
         """Import a file or folder into a specific category."""
         target = Path(path)
@@ -148,7 +150,7 @@ class MainController:
             return (1 if success else 0, 0, [] if success else [path])
         elif target.is_dir():
             added, updated, failed = self.import_folder(
-                path, progress_callback=progress_callback
+                path, progress_callback=progress_callback, recursive=recursive
             )
             print(
                 f"DEBUG: Folder import results: {added} added, {updated} updated, "

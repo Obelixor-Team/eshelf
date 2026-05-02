@@ -469,6 +469,11 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         new_cat_entry = Gtk.Entry(placeholder_text="New category name")
         box.append(new_cat_entry)
 
+        # Recursive option
+        recursive_check = Gtk.CheckButton(label="Include subfolders")
+        recursive_check.set_active(True)
+        box.append(recursive_check)
+
         add_cat_btn = Gtk.Button(label="Add Category")
 
         def on_add_category_clicked(button: Gtk.Button) -> None:
@@ -505,7 +510,10 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                 try:
                     GLib.idle_add(self.show_progress_bar)
                     added, updated, failed = self.controller.import_path(
-                        path, c_id, progress_callback=progress_callback
+                        path,
+                        c_id,
+                        progress_callback=progress_callback,
+                        recursive=recursive_check.get_active(),
                     )
                     GLib.idle_add(
                         self._on_import_finished_internal, (added, updated, failed)
