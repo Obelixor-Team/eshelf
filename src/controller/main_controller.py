@@ -186,10 +186,8 @@ class MainController:
     ) -> Tuple[int, int, List[str]]:
         """Import a file or folder into a specific category."""
         target = Path(path)
-        print(f"DEBUG: Importing path: {path}, category: {category_id}")
         if target.is_file():
             success = self.import_file(path)
-            print(f"DEBUG: File import success: {success}")
             if success and category_id:
                 self.move_book_to_category(path, category_id)
             return (1 if success else 0, 0, [] if success else [path])
@@ -197,15 +195,10 @@ class MainController:
             added, updated, failed = self.import_folder(
                 path, progress_callback=progress_callback, recursive=recursive
             )
-            print(
-                f"DEBUG: Folder import results: {added} added, {updated} updated, "
-                f"{failed} failed"
-            )
             if category_id:
                 # Logic to categorize all imported books
                 pass
             return added, updated, failed
-        print(f"DEBUG: Path is neither file nor dir: {path}")
         return (0, 0, [path])
 
     def cleanup_library(self) -> int:
@@ -214,17 +207,17 @@ class MainController:
 
     def clear_library(self) -> None:
         """Clear the database and remove all cached cover images."""
-        self.logger.info("DEBUG: Starting clear_library in controller")
+        self.logger.info("Starting clear_library")
         try:
             self.repository.clear()
-            self.logger.info("DEBUG: Repository cleared successfully")
+            self.logger.info("Repository cleared successfully")
         except Exception as e:
-            self.logger.error(f"DEBUG: Failed to clear repository: {e}")
+            self.logger.error(f"Failed to clear repository: {e}")
             raise
 
         # Remove all files in the cache directory
         cache_path = Path(self.extractor.cache_dir)
-        self.logger.info(f"DEBUG: Clearing cache at {cache_path}")
+        self.logger.info(f"Clearing cache at {cache_path}")
         if cache_path.exists() and cache_path.is_dir():
             count = 0
             for item in cache_path.iterdir():
@@ -233,10 +226,10 @@ class MainController:
                         item.unlink()
                         count += 1
                     except Exception as e:
-                        self.logger.error(f"DEBUG: Failed to delete {item}: {e}")
-            self.logger.info(f"DEBUG: Removed {count} files from cache")
+                        self.logger.error(f"Failed to delete {item}: {e}")
+            self.logger.info(f"Removed {count} files from cache")
         else:
-            self.logger.warning(f"DEBUG: Cache path {cache_path} is invalid")
+            self.logger.debug(f"Cache path {cache_path} is invalid")
 
     def update_book_metadata(self, book_path: str, title: str, author: str) -> None:
         """Update the metadata for a book."""

@@ -381,9 +381,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
     def on_import_clicked(self, item: Gtk.Button) -> None:
         """Unified import handler."""
-        print("DEBUG: Import button clicked")
         if not self.controller:
-            print("DEBUG: Controller is None")
             return
 
         confirm_dialog = Adw.AlertDialog(
@@ -396,7 +394,6 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
         def on_choice(d: Adw.AlertDialog, result: Any) -> None:
             response = d.choose_finish(result)
-            print(f"DEBUG: Import type choice: {response}")
 
             def show_picker() -> bool:
                 if response == "file":
@@ -406,12 +403,10 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                     def on_open_response(dialog: Gtk.FileDialog, result: Any) -> None:
                         try:
                             file = dialog.open_finish(result)
-                            path = file.get_path() if file else "None"
-                            print(f"DEBUG: File selected: {path}")
                             if file and self.controller:
+                                path = file.get_path()
                                 self.show_category_dialog(path)
                         except Exception as e:
-                            print(f"DEBUG: File selection error: {e}")
                             self.show_error(f"Error selecting file: {e}")
 
                     file_dialog.open(self, None, on_open_response)
@@ -423,12 +418,10 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                     def on_folder_response(dialog: Gtk.FileDialog, result: Any) -> None:
                         try:
                             folder = dialog.select_folder_finish(result)
-                            path = folder.get_path() if folder else "None"
-                            print(f"DEBUG: Folder selected: {path}")
                             if folder and self.controller:
+                                path = folder.get_path()
                                 self.show_category_dialog(path)
                         except Exception as e:
-                            print(f"DEBUG: Folder selection error: {e}")
                             self.show_error(f"Error selecting folder: {e}")
 
                     folder_dialog.select_folder(self, None, on_folder_response)
@@ -554,7 +547,6 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
         import_btn.connect("clicked", on_import_clicked_internal)
 
-        print(f"DEBUG: Showing category dialog for path: {path}")
         dialog.present()
 
     def show_progress_bar(self) -> None:
@@ -823,7 +815,6 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
         def on_clear_clicked(button: Gtk.Button) -> None:
             # Confirm dialog
-            print("DEBUG: Clear button clicked")
             confirm_dialog = Adw.AlertDialog(
                 heading="Clear Library?",
                 body=(
@@ -841,12 +832,9 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
             def on_response(d: Adw.AlertDialog, result: Any) -> None:
                 response = d.choose_finish(result)
-                print(f"DEBUG: Clear dialog response: {response}")
                 if response == "clear" and self.controller:
                     try:
-                        print("DEBUG: Calling controller.clear_library()")
                         self.controller.clear_library()
-                        print("DEBUG: clear_library() finished")
                         self.sidebar.select_category(None, True)
                         self.refresh_sidebar()
                         self.refresh_grid()
@@ -854,7 +842,6 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                         self.show_toast("Library cleared successfully.")
                         dialog.close()
                     except Exception as e:
-                        print(f"DEBUG: Clear library error: {e}")
                         self.show_error(f"Error clearing library: {e}")
 
             confirm_dialog.choose(dialog, None, on_response)
