@@ -210,10 +210,7 @@ class MainController:
 
     def cleanup_library(self) -> int:
         """Remove missing books and return count of removed books."""
-        total_removed = 0
-        for lib_dir in self.library_dirs:
-            total_removed += self.scanner.cleanup_missing(lib_dir)
-        return total_removed
+        return self.scanner.cleanup_all(self.library_dirs)
 
     def clear_library(self) -> None:
         """Clear the database and remove all cached cover images."""

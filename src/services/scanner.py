@@ -137,26 +137,38 @@ class BookScanner:
 
         return added, updated, failed_files
 
-    def cleanup_missing(self, directory: str) -> int:
-        """Remove books from the repository that no longer exist on disk.
+    def cleanup_all(self, directories: List[str]) -> int:
+        """Remove books that are no longer monitored or missing.
+
+        Removes books from the repository that are no longer in the monitored
+        directories or no longer exist on disk.
 
         Args:
-            directory (str): The directory path to verify against.
+            directories (List[str]): The list of monitored directory paths.
 
         Returns:
             int: Number of books removed.
         """
         removed = 0
         all_books = self.repository.get_all_books()
+        dir_paths = [Path(d).absolute() for d in directories]
 
-        dir_path = Path(directory)
         for book in all_books:
-            try:
-                Path(book.path).relative_to(dir_path)
-            except ValueError:
-                continue
+            book_path = Path(book.path).absolute()
+            exists = book_path.exists()
 
-            if not Path(book.path).exists():
+            # Check if book is within any of the monitored directories
+            in_monitored_dir = False
+            if exists:
+                for lib_path in dir_paths:
+                    try:
+                        book_path.relative_to(lib_path)
+                        in_monitored_dir = True
+                        break
+                    except ValueError:
+                        continue
+
+            if not exists or not in_monitored_dir:
                 self.repository.remove_book(book.path)
                 removed += 1
 

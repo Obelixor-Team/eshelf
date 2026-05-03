@@ -71,12 +71,12 @@ def test_controller_cleanup_library(controller_env: tuple[MainController, str]) 
     """Test cleanup via controller."""
     controller, lib_dir = controller_env
     mock_scanner = MagicMock()
-    mock_scanner.cleanup_missing.return_value = 5
+    mock_scanner.cleanup_all.return_value = 5
     controller.scanner = mock_scanner
 
     removed = controller.cleanup_library()
     assert removed == 5
-    mock_scanner.cleanup_missing.assert_called_once_with(lib_dir)
+    mock_scanner.cleanup_all.assert_called_once_with([lib_dir])
 
 
 @patch("subprocess.run")

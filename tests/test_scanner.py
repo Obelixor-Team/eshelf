@@ -71,31 +71,44 @@ def test_scanner_updates_existing_books() -> None:
         mock_repo.add_book.assert_called_once()
 
 
-def test_scanner_cleanup_missing() -> None:
-    """Test cleanup_missing removes non-existent files only within directory."""
+def test_scanner_cleanup_all() -> None:
+    """Test cleanup_all removes non-existent files AND files outside monitored dirs."""
     mock_repo = MagicMock(spec=BookRepository)
     with tempfile.TemporaryDirectory() as tmpdir:
-        # Book 1: Exists in tmpdir
-        book1_path = Path(tmpdir) / "exists.pdf"
+        # Monitored Dir
+        monitored_dir = Path(tmpdir) / "monitored"
+        monitored_dir.mkdir()
+
+        # Book 1: Exists in monitored dir
+        book1_path = monitored_dir / "exists.pdf"
         book1_path.touch()
-        # Book 2: Missing in tmpdir
-        book2_path = Path(tmpdir) / "gone.pdf"
-        # Book 3: Missing but NOT in tmpdir
-        book3_path = Path("/non/existent/dir/gone.pdf")
+
+        # Book 2: Missing in monitored dir
+        book2_path = monitored_dir / "gone.pdf"
+
+        # Book 3: Exists but NOT in monitored dir
+        other_dir = Path(tmpdir) / "other"
+        other_dir.mkdir()
+        book3_path = other_dir / "outside.pdf"
+        book3_path.touch()
 
         mock_repo.get_all_books.return_value = [
             Book(path=str(book1_path.absolute()), title="Exist", author="A"),
-            Book(path=str(book2_path.absolute()), title="Gone1", author="B"),
-            Book(path=str(book3_path.absolute()), title="Gone2", author="C"),
+            Book(path=str(book2_path.absolute()), title="Gone", author="B"),
+            Book(path=str(book3_path.absolute()), title="Outside", author="C"),
         ]
 
         mock_extractor = MagicMock(spec=CoverExtractor)
         scanner = BookScanner(mock_repo, mock_extractor)
 
-        removed = scanner.cleanup_missing(str(Path(tmpdir).absolute()))
+        removed = scanner.cleanup_all([str(monitored_dir.absolute())])
 
-        assert removed == 1
-        mock_repo.remove_book.assert_called_once_with(str(book2_path.absolute()))
+        assert removed == 2
+        # Should remove book2 (missing) and book3 (not monitored)
+        assert mock_repo.remove_book.call_count == 2
+        removed_paths = [call[0][0] for call in mock_repo.remove_book.call_args_list]
+        assert str(book2_path.absolute()) in removed_paths
+        assert str(book3_path.absolute()) in removed_paths
 
 
 def test_scanner_invalid_directory() -> None:
