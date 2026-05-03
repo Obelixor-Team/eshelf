@@ -42,12 +42,13 @@ class ShelfGrid(Gtk.Box):  # type: ignore
         self.selection_model = Gtk.MultiSelection.new(self.store)
 
         # Grid View
+        cols = self._config.get("books_per_line", 6)
         self.grid_view = Gtk.GridView(
             model=self.selection_model,
             factory=factory,
         )
-        self.grid_view.set_max_columns(20)
-        self.grid_view.set_min_columns(1)
+        self.grid_view.set_max_columns(cols)
+        self.grid_view.set_min_columns(cols)
         self.grid_view.set_enable_rubberband(True)
 
         # Styling
@@ -98,6 +99,10 @@ class ShelfGrid(Gtk.Box):  # type: ignore
     def update_config(self, config: dict[str, Any]) -> None:
         """Update the cached configuration and force a grid refresh."""
         self._config = config
+        cols = self._config.get("books_per_line", 6)
+        self.grid_view.set_max_columns(cols)
+        self.grid_view.set_min_columns(cols)
+
         # Force a refresh by re-adding items
         books = [obj.book for obj in self.store]
         self.update_books(books)
