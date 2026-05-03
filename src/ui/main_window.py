@@ -960,15 +960,27 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         )
         box.append(uncat_btn)
 
-        # Category options
+        # Category DropDown
         categories = self.controller.get_categories()
-        for cat in categories:
-            btn = Gtk.Button(label=f"Move to {cat.name}{label_suffix}")
-            btn.connect(
-                "clicked",
-                lambda _, c_id=cat.id: self.move_books(selected_books, c_id, popover),
-            )
-            box.append(btn)
+        cat_names = ["None"] + [cat.name for cat in categories]
+        cat_map = {cat.name: cat.id for cat in categories}
+
+        model = Gtk.StringList.new(cat_names)
+        dropdown = Gtk.DropDown.new(model, None)
+        dropdown.set_valign(Gtk.Align.CENTER)
+
+        def on_category_changed(obj: Gtk.DropDown, *args: Any) -> None:
+            selected_item = obj.get_selected_item()
+            if not selected_item:
+                return
+            name = selected_item.get_string()
+            if name == "None":
+                return
+            c_id = cat_map.get(name)
+            self.move_books(selected_books, c_id, popover)
+
+        dropdown.connect("notify::selected", on_category_changed)
+        box.append(dropdown)
 
         popover.popup()
 
