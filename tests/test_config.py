@@ -116,15 +116,29 @@ def test_save_config_validation(mock_config_file: str) -> None:
     with pytest.raises(ValueError, match="cache_dir must be a string"):
         save_config(invalid_cache)
 
-    # Test invalid library_dirs
-    invalid_lib = valid_config.copy()
-    invalid_lib["library_dirs"] = "/tmp/library"
-    with pytest.raises(ValueError, match="library_dirs must be a list of strings"):
-        save_config(invalid_lib)
+    # Test invalid last_category_identifier
+    invalid_cat = valid_config.copy()
+    invalid_cat["last_category_identifier"] = 123
+    with pytest.raises(ValueError, match="last_category_identifier must be a string"):
+        save_config(invalid_cat)
 
-    invalid_lib["library_dirs"] = [123]
-    with pytest.raises(ValueError, match="library_dirs must be a list of strings"):
-        save_config(invalid_lib)
+    # Test invalid sidebar_visible
+    invalid_side = valid_config.copy()
+    invalid_side["sidebar_visible"] = "True"
+    with pytest.raises(ValueError, match="sidebar_visible must be a boolean"):
+        save_config(invalid_side)
+
+    # Test invalid show_titles
+    invalid_titles = valid_config.copy()
+    invalid_titles["show_titles"] = "True"
+    with pytest.raises(ValueError, match="show_titles must be a boolean"):
+        save_config(invalid_titles)
+
+    # Test invalid last_sort_option
+    invalid_sort = valid_config.copy()
+    invalid_sort["last_sort_option"] = 123
+    with pytest.raises(ValueError, match="last_sort_option must be a string"):
+        save_config(invalid_sort)
 
 
 def test_load_config_malformed_json(mock_config_file: str) -> None:

@@ -11,6 +11,7 @@ import pytest
 
 from src.controller.main_controller import MainController
 from src.models.book import Book
+from src.services.exceptions import ExtractionError
 
 
 @pytest.fixture  # type: ignore
@@ -300,3 +301,22 @@ def test_controller_open_book_failure(
 
     controller.open_book(book)
     controller.error_callback.assert_called_once()
+
+
+def test_controller_import_file_extraction_error(
+    controller_env: tuple[MainController, str],
+) -> None:
+    """Test importing a file that raises an ExtractionError."""
+    controller, _ = controller_env
+    controller.error_callback = MagicMock()
+
+    with patch("src.controller.main_controller.Path") as mock_path:
+        mock_path.return_value.suffix = ".pdf"
+        # Mock metadata extractor to raise ExtractionError
+        with patch(
+            "src.controller.main_controller.MetadataExtractor.extract",
+            side_effect=ExtractionError("Extraction failed"),
+        ):
+            success = controller.import_file("/path/to/book.pdf")
+            assert success is False
+            controller.error_callback.assert_called_once_with("Extraction failed")

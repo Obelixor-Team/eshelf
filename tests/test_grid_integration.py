@@ -87,3 +87,26 @@ def test_shelf_grid_factory_bind() -> None:
     grid._on_factory_bind(mock_factory, mock_item)
 
     mock_widget.bind.assert_called_once()
+
+
+def test_shelf_grid_get_selected_books() -> None:
+    """Test retrieving selected books from the grid."""
+    grid = ShelfGrid(on_book_selected_callback=lambda b: None)
+    books = [
+        Book(path=f"/tmp/book{i}.pdf", title=f"Book {i}", author="Author")
+        for i in range(5)
+    ]
+    grid.update_books(books)
+
+    # Mock the selection model
+    grid.selection_model.get_selection = MagicMock()
+    mock_selection = MagicMock()
+    grid.selection_model.get_selection.return_value = mock_selection
+
+    # Select books 0 and 2
+    mock_selection.contains.side_effect = lambda i: i in [0, 2]
+
+    selected = grid.get_selected_books()
+    assert len(selected) == 2
+    assert selected[0].path == "/tmp/book0.pdf"
+    assert selected[1].path == "/tmp/book2.pdf"
