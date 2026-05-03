@@ -818,6 +818,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                 if response == "clear" and self.controller:
                     try:
                         self.controller.clear_library()
+                        self.refresh_sidebar()
                         self.refresh_grid()
                         self.show_toast("Library cleared successfully.")
                         dialog.close()
