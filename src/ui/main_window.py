@@ -504,6 +504,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                     self.controller.create_category(name)
                     new_cat_entry.set_text("")
                     refresh_combo()
+                    self.refresh_sidebar()
                 except Exception as e:
                     self.show_error(f"Error creating category: {e}")
 

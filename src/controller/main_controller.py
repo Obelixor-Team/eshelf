@@ -192,12 +192,20 @@ class MainController:
                 self.move_book_to_category(path, category_id)
             return (1 if success else 0, 0, [] if success else [path])
         elif target.is_dir():
+            # Get list of existing books to identify newly imported ones
+            existing_paths = {b.path for b in self.repository.get_all_books()}
+
             added, updated, failed = self.import_folder(
                 path, progress_callback=progress_callback, recursive=recursive
             )
+
             if category_id:
-                # Logic to categorize all imported books
-                pass
+                # Identify newly added books
+                all_books = self.repository.get_all_books()
+                for book in all_books:
+                    if book.path not in existing_paths:
+                        self.move_book_to_category(book.path, category_id)
+
             return added, updated, failed
         return (0, 0, [path])
 
