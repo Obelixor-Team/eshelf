@@ -214,14 +214,29 @@ class MainController:
 
     def clear_library(self) -> None:
         """Clear the database and remove all cached cover images."""
-        self.repository.clear()
+        self.logger.info("DEBUG: Starting clear_library in controller")
+        try:
+            self.repository.clear()
+            self.logger.info("DEBUG: Repository cleared successfully")
+        except Exception as e:
+            self.logger.error(f"DEBUG: Failed to clear repository: {e}")
+            raise
 
         # Remove all files in the cache directory
         cache_path = Path(self.extractor.cache_dir)
+        self.logger.info(f"DEBUG: Clearing cache at {cache_path}")
         if cache_path.exists() and cache_path.is_dir():
+            count = 0
             for item in cache_path.iterdir():
                 if item.is_file():
-                    item.unlink()
+                    try:
+                        item.unlink()
+                        count += 1
+                    except Exception as e:
+                        self.logger.error(f"DEBUG: Failed to delete {item}: {e}")
+            self.logger.info(f"DEBUG: Removed {count} files from cache")
+        else:
+            self.logger.warning(f"DEBUG: Cache path {cache_path} is invalid")
 
     def update_book_metadata(self, book_path: str, title: str, author: str) -> None:
         """Update the metadata for a book."""

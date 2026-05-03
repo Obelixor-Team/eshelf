@@ -282,12 +282,14 @@ class BookRepository:
                 for row in cursor.fetchall()
             ]
 
+    @retry_on_locked()
     def clear(self) -> None:
         """Remove all books and categories from the database."""
         with self._get_connection() as conn:
             conn.execute("DELETE FROM books")
             conn.execute("DELETE FROM categories")
             conn.commit()
+            conn.execute("VACUUM")
 
     def close(self) -> None:
         """Close all database connections."""
