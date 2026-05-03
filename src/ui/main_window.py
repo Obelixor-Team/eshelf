@@ -969,6 +969,17 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         dropdown = Gtk.DropDown.new(model, None)
         dropdown.set_valign(Gtk.Align.CENTER)
 
+        # Pre-select category if all selected books belong to the same one
+        first_cat = selected_books[0].category_id
+        if all(b.category_id == first_cat for b in selected_books) and first_cat:
+            cat_name = None
+            for cat in categories:
+                if cat.id == first_cat:
+                    cat_name = cat.name
+                    break
+            if cat_name and cat_name in cat_names:
+                dropdown.set_selected(cat_names.index(cat_name))
+
         def on_category_changed(obj: Gtk.DropDown, *args: Any) -> None:
             selected_item = obj.get_selected_item()
             if not selected_item:
