@@ -736,7 +736,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                 except Exception as e:
                     self.show_error(f"Error selecting folder: {e}")
 
-            folder_dialog.select_folder(self, None, on_folder_response)
+            folder_dialog.select_folder(dialog, None, on_folder_response)
 
         add_library_btn.connect("clicked", on_add_library_clicked)
         library_group.add(add_library_btn)
@@ -762,7 +762,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                 except Exception as e:
                     self.show_error(f"Error selecting folder: {e}")
 
-            folder_dialog.select_folder(self, None, on_folder_response)
+            folder_dialog.select_folder(dialog, None, on_folder_response)
 
         browse_button = Gtk.Button(icon_name="folder-open-symbolic")
         browse_button.connect("clicked", on_browse_clicked)
@@ -825,7 +825,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                     except Exception as e:
                         self.show_error(f"Error clearing library: {e}")
 
-            confirm_dialog.choose(self, None, on_response)
+            confirm_dialog.choose(dialog, None, on_response)
 
         clear_btn.connect("clicked", on_clear_clicked)
         clear_row.add_suffix(clear_btn)
