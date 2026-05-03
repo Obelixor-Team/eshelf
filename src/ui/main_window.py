@@ -227,7 +227,8 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             self._error_dialog.set_default_response("ok")
             self._error_dialog.set_close_response("ok")
 
-            def on_response(dialog: Adw.AlertDialog, response: str) -> None:
+            def on_response(dialog: Adw.AlertDialog, result: Any) -> None:
+                dialog.choose_finish(result)
                 self._error_dialog = None
 
             self._error_dialog.choose(self, None, on_response)
@@ -393,7 +394,8 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         confirm_dialog.add_response("folder", "Folder")
         confirm_dialog.add_response("cancel", "Cancel")
 
-        def on_choice(d: Adw.AlertDialog, response: str) -> None:
+        def on_choice(d: Adw.AlertDialog, result: Any) -> None:
+            response = d.choose_finish(result)
             print(f"DEBUG: Import type choice: {response}")
 
             def show_picker() -> bool:
@@ -837,7 +839,8 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             confirm_dialog.set_default_response("cancel")
             confirm_dialog.set_close_response("cancel")
 
-            def on_response(d: Adw.AlertDialog, response: str) -> None:
+            def on_response(d: Adw.AlertDialog, result: Any) -> None:
+                response = d.choose_finish(result)
                 print(f"DEBUG: Clear dialog response: {response}")
                 if response == "clear" and self.controller:
                     try:
