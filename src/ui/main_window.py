@@ -689,37 +689,67 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         zoom_row.add_suffix(zoom_spin)
         group.add(zoom_row)
 
-        # Library directory
-        library_row = Adw.ActionRow(title="Library directory")
-        library_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        library_entry = Gtk.Entry(text=config.get("library_dir", ""))
-        library_entry.set_hexpand(True)
+        # Library directories
+        library_group = Adw.PreferencesGroup(title="Library Directories")
+        page.add(library_group)
 
-        def on_library_browse_clicked(button: Gtk.Button) -> None:
+        library_rows: List[Adw.ActionRow] = []
+
+        def create_library_row(path: str) -> Adw.ActionRow:
+            row = Adw.ActionRow(title=path)
+            remove_btn = Gtk.Button(icon_name="user-trash-symbolic")
+            remove_btn.add_css_class("flat")
+            remove_btn.set_valign(Gtk.Align.CENTER)
+
+            def on_remove_clicked(btn: Gtk.Button) -> None:
+                library_group.remove(row)
+                library_rows.remove(row)
+
+            remove_btn.connect("clicked", on_remove_clicked)
+            row.add_suffix(remove_btn)
+            return row
+
+        for lib_path in config.get("library_dirs", []):
+            row = create_library_row(lib_path)
+            library_rows.append(row)
+            library_group.add(row)
+
+        add_library_btn = Gtk.Button(label="Add Library", icon_name="list-add-symbolic")
+        add_library_btn.set_halign(Gtk.Align.START)
+        add_library_btn.set_margin_top(6)
+
+        def on_add_library_clicked(btn: Gtk.Button) -> None:
             folder_dialog = Gtk.FileDialog(title="Select Library Directory")
 
-            def on_library_folder_response(dialog: Any, result: Any) -> None:
+            def on_folder_response(dialog: Any, result: Any) -> None:
                 try:
                     folder = dialog.select_folder_finish(result)
                     if folder:
-                        library_entry.set_text(folder.get_path())
+                        path = folder.get_path()
+                        if path not in [r.get_title() for r in library_rows]:
+                            row = create_library_row(path)
+                            library_rows.append(row)
+                            # Add before the "Add Library" button
+                            library_group.remove(add_library_btn)
+                            library_group.add(row)
+                            library_group.add(add_library_btn)
                 except Exception as e:
                     self.show_error(f"Error selecting folder: {e}")
 
-            folder_dialog.select_folder(self, None, on_library_folder_response)
+            folder_dialog.select_folder(self, None, on_folder_response)
 
-        library_browse_button = Gtk.Button(icon_name="folder-open-symbolic")
-        library_browse_button.connect("clicked", on_library_browse_clicked)
-        library_box.append(library_entry)
-        library_box.append(library_browse_button)
-        library_row.add_suffix(library_box)
-        group.add(library_row)
+        add_library_btn.connect("clicked", on_add_library_clicked)
+        library_group.add(add_library_btn)
 
         # Cache directory
+        cache_group = Adw.PreferencesGroup(title="Storage")
+        page.add(cache_group)
+
         cache_row = Adw.ActionRow(title="Cache directory")
         cache_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         cache_entry = Gtk.Entry(text=config.get("cache_dir", ""))
         cache_entry.set_hexpand(True)
+        cache_entry.set_valign(Gtk.Align.CENTER)
 
         def on_browse_clicked(button: Gtk.Button) -> None:
             folder_dialog = Gtk.FileDialog(title="Select Cache Directory")
@@ -732,14 +762,14 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                 except Exception as e:
                     self.show_error(f"Error selecting folder: {e}")
 
-            folder_dialog.select_folder(self, on_folder_response)
+            folder_dialog.select_folder(self, None, on_folder_response)
 
         browse_button = Gtk.Button(icon_name="folder-open-symbolic")
         browse_button.connect("clicked", on_browse_clicked)
         cache_box.append(cache_entry)
         cache_box.append(browse_button)
         cache_row.add_suffix(cache_box)
-        group.add(cache_row)
+        cache_group.add(cache_row)
 
         # Display settings
         display_group = Adw.PreferencesGroup(title="Display")
@@ -747,6 +777,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         show_titles_row = Adw.ActionRow(title="Show Titles")
         show_titles_switch = Gtk.Switch()
         show_titles_switch.set_active(config.get("show_titles", True))
+        show_titles_switch.set_valign(Gtk.Align.CENTER)
 
         def on_show_titles_toggled(switch: Gtk.Switch, *args: Any) -> None:
             active = switch.get_active()
@@ -764,6 +795,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         clear_row = Adw.ActionRow(title="Clear Library")
         clear_btn = Gtk.Button(label="Clear Database & Images")
         clear_btn.add_css_class("destructive-action")
+        clear_btn.set_valign(Gtk.Align.CENTER)
 
         def on_clear_clicked(button: Gtk.Button) -> None:
             # Confirm dialog
@@ -813,15 +845,20 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
         def on_save_clicked(button: Gtk.Button) -> None:
             try:
-                new_config = {
-                    "books_per_line": int(books_per_line_spin.get_value()),
-                    "zoom_level": float(zoom_spin.get_value()),
-                    "library_dir": library_entry.get_text(),
-                    "cache_dir": cache_entry.get_text(),
-                    "show_titles": show_titles_switch.get_active(),
-                }
+                new_config = config.copy()
+                new_config.update(
+                    {
+                        "books_per_line": int(books_per_line_spin.get_value()),
+                        "zoom_level": float(zoom_spin.get_value()),
+                        "library_dirs": [row.get_title() for row in library_rows],
+                        "cache_dir": cache_entry.get_text(),
+                        "show_titles": show_titles_switch.get_active(),
+                    }
+                )
                 save_config(new_config)
                 self.grid.update_config(new_config)
+                if self.controller:
+                    self.controller.library_dirs = new_config["library_dirs"]
                 self.refresh_grid()
                 dialog.close()
             except ValueError as e:

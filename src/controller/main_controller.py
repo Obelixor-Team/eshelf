@@ -22,7 +22,7 @@ class MainController:
 
     def __init__(
         self,
-        library_dir: str,
+        library_dirs: List[str],
         db_path: str,
         cache_dir: str,
         error_callback: Optional[Callable[[str], None]] = None,
@@ -30,12 +30,12 @@ class MainController:
         """Initialize the controller.
 
         Args:
-            library_dir (str): Directory where books are stored.
+            library_dirs (List[str]): Directories where books are stored.
             db_path (str): Path to the SQLite database.
             cache_dir (str): Path to the thumbnail cache.
             error_callback (callable, optional): Callback to report errors to the UI.
         """
-        self.library_dir = library_dir
+        self.library_dirs = library_dirs
         self.repository = BookRepository(db_path)
         self.book_service = BookService(self.repository)
         self.extractor = CoverExtractor(cache_dir)
@@ -89,10 +89,55 @@ class MainController:
         self, progress_callback: Optional[Callable[[int, int], None]] = None
     ) -> Tuple[int, int, List[str]]:
         """Scan the library for books and return (added, updated, failed) counts."""
-        added, updated, failed = self.scanner.scan(
-            self.library_dir, progress_callback=progress_callback
-        )
-        return added, updated, failed
+        total_added = 0
+        total_updated = 0
+        all_failed = []
+
+        # Find all files first to provide accurate global progress
+        all_files = []
+        for lib_dir in self.library_dirs:
+            dir_path = Path(lib_dir)
+            if not dir_path.is_dir():
+                continue
+            all_files.extend(
+                [
+                    f
+                    for f in dir_path.glob("**/*")
+                    if f.suffix.lower() in (".pdf", ".epub")
+                ]
+            )
+
+        total_files = len(all_files)
+        if total_files == 0:
+            return 0, 0, []
+
+        processed_count = 0
+        for lib_dir in self.library_dirs:
+            if not Path(lib_dir).is_dir():
+                continue
+
+            def wrapped_callback(current: int, total: int) -> None:
+                if progress_callback:
+                    # 'total' here is per-directory, but we use global 'total_files'
+                    progress_callback(processed_count + current, total_files)
+
+            added, updated, failed = self.scanner.scan(
+                lib_dir,
+                progress_callback=wrapped_callback if progress_callback else None,
+            )
+            total_added += added
+            total_updated += updated
+            all_failed.extend(failed)
+
+            # We need to increment processed_count by the number of files in this dir
+            dir_files = [
+                f
+                for f in Path(lib_dir).glob("**/*")
+                if f.suffix.lower() in (".pdf", ".epub")
+            ]
+            processed_count += len(dir_files)
+
+        return total_added, total_updated, all_failed
 
     def import_folder(
         self,
@@ -165,7 +210,10 @@ class MainController:
 
     def cleanup_library(self) -> int:
         """Remove missing books and return count of removed books."""
-        return self.scanner.cleanup_missing(self.library_dir)
+        total_removed = 0
+        for lib_dir in self.library_dirs:
+            total_removed += self.scanner.cleanup_missing(lib_dir)
+        return total_removed
 
     def clear_library(self) -> None:
         """Clear the database and remove all cached cover images."""

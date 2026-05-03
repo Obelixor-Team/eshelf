@@ -28,7 +28,7 @@ def controller_env() -> Generator[tuple[MainController, str], None, None]:
             patch("src.controller.main_controller.CoverExtractor"),
             patch("src.controller.main_controller.BookScanner"),
         ):
-            controller = MainController(lib_dir, db_path, cache_dir)
+            controller = MainController([lib_dir], db_path, cache_dir)
             yield controller, lib_dir
 
 
@@ -51,11 +51,20 @@ def test_controller_scan_library(controller_env: tuple[MainController, str]) -> 
     mock_scanner.scan.return_value = (1, 0, [])
     controller.scanner = mock_scanner
 
-    added, updated, failed = controller.scan_library()
+    # Mock the internal globbing to return a file so total_files > 0
+    mock_file = MagicMock()
+    mock_file.suffix = ".pdf"
+    with patch("src.controller.main_controller.Path.glob") as mock_glob:
+        mock_glob.return_value = [mock_file]
+        added, updated, failed = controller.scan_library()
+
     assert added == 1
     assert updated == 0
     assert len(failed) == 0
-    mock_scanner.scan.assert_called_once_with(lib_dir, progress_callback=None)
+    # The scanner.scan is called once per lib_dir
+    assert mock_scanner.scan.call_count == 1
+    call_args = mock_scanner.scan.call_args
+    assert call_args[0][0] == lib_dir
 
 
 def test_controller_cleanup_library(controller_env: tuple[MainController, str]) -> None:

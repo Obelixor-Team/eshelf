@@ -21,17 +21,25 @@ def main() -> None:
     """Initialize and run the eShelf application."""
     config = load_config()
     setup_logging(config)
-    library_dir = str(config.get("library_dir") or DEFAULT_CONFIG["library_dir"])
+    library_dirs_raw = config.get("library_dirs") or DEFAULT_CONFIG["library_dirs"]
+
+    library_dirs: list[str]
+    if isinstance(library_dirs_raw, list):
+        library_dirs = [str(d) for d in library_dirs_raw]
+    else:
+        library_dirs = [str(library_dirs_raw)]
+
     db_path = os.path.join(user_data_dir("eshelf"), "library.db")
     cache_dir = str(config.get("cache_dir") or DEFAULT_CONFIG["cache_dir"])
 
     # Ensure directories exist
     os.makedirs(os.path.dirname(db_path) if db_path else ".", exist_ok=True)
     os.makedirs(cache_dir, exist_ok=True)
-    os.makedirs(library_dir, exist_ok=True)
+    for lib_dir in library_dirs:
+        os.makedirs(lib_dir, exist_ok=True)
 
     # Initialize Backend
-    controller = MainController(library_dir, db_path, cache_dir)
+    controller = MainController(library_dirs, db_path, cache_dir)
 
     # Initialize UI
     app = Adw.Application(application_id="ai.opencode.eshelf")

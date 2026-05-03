@@ -63,7 +63,7 @@ DEFAULT_CONFIG = {
     "books_per_line": 6,
     "zoom_level": 1.0,
     "cache_dir": os.path.join(user_cache_dir("eshelf"), "covers"),
-    "library_dir": os.path.join(user_data_dir("eshelf"), "Books"),
+    "library_dirs": [os.path.join(user_data_dir("eshelf"), "Books")],
     "last_category_identifier": "all",
     "sidebar_visible": True,
     "last_sort_option": "Title",
@@ -80,6 +80,13 @@ def load_config() -> dict[str, Any]:
     try:
         with open(CONFIG_FILE, "r") as f:
             loaded = json.load(f)
+
+            # Migration: library_dir -> library_dirs
+            if "library_dir" in loaded and "library_dirs" not in loaded:
+                old_dir = loaded.pop("library_dir")
+                if isinstance(old_dir, str):
+                    loaded["library_dirs"] = [old_dir]
+
             # Merge with defaults
             config = {**DEFAULT_CONFIG, **loaded}
 
@@ -99,12 +106,17 @@ def load_config() -> dict[str, Any]:
             # Ensure string fields are strings
             for key in [
                 "cache_dir",
-                "library_dir",
                 "last_category_identifier",
                 "last_sort_option",
             ]:
                 if not isinstance(config[key], str):
                     config[key] = DEFAULT_CONFIG[key]
+
+            # Ensure library_dirs is a list of strings
+            if not isinstance(config["library_dirs"], list) or not all(
+                isinstance(p, str) for p in config["library_dirs"]
+            ):
+                config["library_dirs"] = DEFAULT_CONFIG["library_dirs"]
 
             # Ensure boolean fields are booleans
             for key in ["sidebar_visible", "show_titles"]:
@@ -134,9 +146,11 @@ def save_config(config: dict[str, Any]) -> None:
     if not isinstance(cache_dir, str):
         raise ValueError("cache_dir must be a string")
 
-    library_dir = full_config.get("library_dir")
-    if not isinstance(library_dir, str):
-        raise ValueError("library_dir must be a string")
+    library_dirs = full_config.get("library_dirs")
+    if not isinstance(library_dirs, list) or not all(
+        isinstance(p, str) for p in library_dirs
+    ):
+        raise ValueError("library_dirs must be a list of strings")
 
     last_category_identifier = full_config.get("last_category_identifier")
     if not isinstance(last_category_identifier, str):

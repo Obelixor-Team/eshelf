@@ -42,7 +42,7 @@ def test_save_and_load_config(mock_config_file: str) -> None:
         "books_per_line": 5,
         "zoom_level": 1.5,
         "cache_dir": "/tmp/eshelf_cache",
-        "library_dir": "/tmp/eshelf_library",
+        "library_dirs": ["/tmp/eshelf_library"],
     }
 
     save_config(test_config)
@@ -51,7 +51,23 @@ def test_save_and_load_config(mock_config_file: str) -> None:
     assert loaded_config["books_per_line"] == 5
     assert loaded_config["zoom_level"] == 1.5
     assert loaded_config["cache_dir"] == "/tmp/eshelf_cache"
-    assert loaded_config["library_dir"] == "/tmp/eshelf_library"
+    assert loaded_config["library_dirs"] == ["/tmp/eshelf_library"]
+
+
+def test_config_migration(mock_config_file: str) -> None:
+    """Test that library_dir is migrated to library_dirs."""
+    old_config = {
+        "library_dir": "/tmp/old_library",
+        "books_per_line": 10,
+    }
+    with open(mock_config_file, "w") as f:
+        json.dump(old_config, f)
+
+    config = load_config()
+    assert "library_dirs" in config
+    assert config["library_dirs"] == ["/tmp/old_library"]
+    assert "library_dir" not in config
+    assert config["books_per_line"] == 10
 
 
 def test_load_config_partial(mock_config_file: str) -> None:
@@ -71,7 +87,7 @@ def test_save_config_validation(mock_config_file: str) -> None:
         "books_per_line": 6,
         "zoom_level": 1.0,
         "cache_dir": "/tmp/cache",
-        "library_dir": "/tmp/library",
+        "library_dirs": ["/tmp/library"],
     }
 
     # Test invalid books_per_line
@@ -100,10 +116,14 @@ def test_save_config_validation(mock_config_file: str) -> None:
     with pytest.raises(ValueError, match="cache_dir must be a string"):
         save_config(invalid_cache)
 
-    # Test invalid library_dir
+    # Test invalid library_dirs
     invalid_lib = valid_config.copy()
-    invalid_lib["library_dir"] = 123
-    with pytest.raises(ValueError, match="library_dir must be a string"):
+    invalid_lib["library_dirs"] = "/tmp/library"
+    with pytest.raises(ValueError, match="library_dirs must be a list of strings"):
+        save_config(invalid_lib)
+
+    invalid_lib["library_dirs"] = [123]
+    with pytest.raises(ValueError, match="library_dirs must be a list of strings"):
         save_config(invalid_lib)
 
 
@@ -150,8 +170,6 @@ def test_platformdirs_fallback() -> None:
         importlib.reload(src.config)
 
         # Test the fallback functions directly if they exist on the module
-        # This is tricky because the module is reloaded.
-        # Let's check if the functions are defined as expected.
         assert hasattr(src.config, "user_config_dir")
 
         # Test the fallback behavior
