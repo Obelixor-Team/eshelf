@@ -11,7 +11,7 @@ from src.config import load_config, save_config
 gi.require_version("Gtk", "4.0")  # noqa: E402
 gi.require_version("Adw", "1")  # noqa: E402
 
-from gi.repository import Adw, Gtk  # noqa: E402
+from gi.repository import Adw, Gio, Gtk  # noqa: E402
 
 from src.controller.main_controller import MainController  # noqa: E402
 from src.models.book import Book  # noqa: E402
@@ -125,16 +125,64 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.progress_bar.set_valign(Gtk.Align.CENTER)
         self.header_bar.pack_start(self.progress_bar)
 
-        # Scrollable area for the grid
-        self.scrolled_window = Gtk.ScrolledWindow()
-        self.scrolled_window.set_vexpand(True)
-        self.scrolled_window.set_hexpand(True)
-        self.scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.toolbar_view.set_content(self.scrolled_window)
+        # Main stack for content and empty state
+        self.stack = Gtk.Stack()
+        self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self.toolbar_view.set_content(self.stack)
 
         # The grid
         self.grid = ShelfGrid(self.on_book_selected, self.on_book_right_clicked)
-        self.scrolled_window.set_child(self.grid)
+        self.stack.add_named(self.grid, "grid")
+
+        # Empty state page
+        self.empty_page = Adw.StatusPage()
+        self.empty_page.set_title("No Books Found")
+        self.empty_page.set_description(
+            "Scan your library or import folders to get started."
+        )
+        self.empty_page.set_icon_name("library-symbolic")
+
+        # Action buttons for empty state
+        self.empty_button_box = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL, spacing=12
+        )
+        self.empty_button_box.set_halign(Gtk.Align.CENTER)
+        self.empty_page.set_child(self.empty_button_box)
+
+        self.empty_scan_button = Gtk.Button(label="Scan Library")
+        self.empty_scan_button.add_css_class("suggested-action")
+        self.empty_scan_button.add_css_class("pill")
+        self.empty_scan_button.connect("clicked", self.on_scan_clicked)
+        self.empty_button_box.append(self.empty_scan_button)
+
+        self.empty_clear_search_button = Gtk.Button(label="Clear Search")
+        self.empty_clear_search_button.add_css_class("pill")
+        self.empty_clear_search_button.connect("clicked", self.on_clear_search_clicked)
+        self.empty_clear_search_button.set_visible(False)
+        self.empty_button_box.append(self.empty_clear_search_button)
+
+        self.stack.add_named(self.empty_page, "empty")
+
+        # Keyboard shortcuts
+        self.setup_shortcuts()
+
+    def setup_shortcuts(self) -> None:
+        """Set up keyboard shortcuts."""
+        # Ctrl+F to focus search
+        action = Gio.SimpleAction.new("focus_search", None)
+        action.connect("activate", lambda *_: self.search_entry.grab_focus())
+        self.add_action(action)
+        self.set_active_action_shortcut("focus_search", "<Control>f")
+
+    def set_active_action_shortcut(self, action_name: str, shortcut: str) -> None:
+        """Set a shortcut for an action."""
+        app = self.get_application()
+        if app:
+            app.set_accels_for_action(f"win.{action_name}", [shortcut])
+
+    def on_clear_search_clicked(self, button: Gtk.Button) -> None:
+        """Clear the search entry."""
+        self.search_entry.set_text("")
 
     def set_controller(self, controller: MainController) -> None:
         """Inject the controller and refresh the view."""
@@ -317,6 +365,10 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             return
         if request_id == self._grid_request_id:
             self.grid.update_books(books)
+            if not books:
+                self.stack.set_visible_child_name("empty")
+            else:
+                self.stack.set_visible_child_name("grid")
 
     def refresh_grid(
         self,
@@ -329,6 +381,26 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self._grid_request_id += 1
         books = self._fetch_books(category_id, all_books, search_text, sort_by)
         self.grid.update_books(books)
+
+        if not books:
+            self.stack.set_visible_child_name("empty")
+            # Update empty page text based on search/category
+            if search_text:
+                self.empty_page.set_title("No Results Found")
+                self.empty_page.set_description(
+                    f"No books matching '{search_text}' were found."
+                )
+                self.empty_scan_button.set_visible(False)
+                self.empty_clear_search_button.set_visible(True)
+            else:
+                self.empty_page.set_title("No Books Found")
+                self.empty_page.set_description(
+                    "Scan your library or import folders to get started."
+                )
+                self.empty_scan_button.set_visible(True)
+                self.empty_clear_search_button.set_visible(False)
+        else:
+            self.stack.set_visible_child_name("grid")
 
     def on_category_selected(self, category_id: Optional[int], all_books: bool) -> None:
         """Handle category selection from sidebar."""
