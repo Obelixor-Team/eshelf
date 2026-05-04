@@ -69,6 +69,7 @@ DEFAULT_CONFIG = {
     "last_sort_option": "Title",
     "show_titles": True,
     "log_level": "INFO",
+    "appearance": "System",
 }
 
 
@@ -108,9 +109,10 @@ def load_config() -> dict[str, Any]:
                 "cache_dir",
                 "last_category_identifier",
                 "last_sort_option",
+                "appearance",
             ]:
-                if not isinstance(config[key], str):
-                    config[key] = DEFAULT_CONFIG[key]
+                if not isinstance(config.get(key), str):
+                    config[key] = DEFAULT_CONFIG.get(key)
 
             # Ensure library_dirs is a list of strings
             if not isinstance(config["library_dirs"], list) or not all(
@@ -167,6 +169,10 @@ def save_config(config: dict[str, Any]) -> None:
     last_sort_option = full_config.get("last_sort_option")
     if not isinstance(last_sort_option, str):
         raise ValueError("last_sort_option must be a string")
+
+    appearance = full_config.get("appearance")
+    if not isinstance(appearance, str):
+        raise ValueError("appearance must be a string")
 
     os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
     with open(CONFIG_FILE, "w") as f:

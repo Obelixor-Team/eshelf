@@ -184,6 +184,16 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         """Clear the search entry."""
         self.search_entry.set_text("")
 
+    def apply_theme(self, appearance: str) -> None:
+        """Apply the selected appearance theme."""
+        style_manager = Adw.StyleManager.get_default()
+        if appearance == "Light":
+            style_manager.set_color_scheme(Adw.ColorScheme.FORCE_LIGHT)
+        elif appearance == "Dark":
+            style_manager.set_color_scheme(Adw.ColorScheme.FORCE_DARK)
+        else:
+            style_manager.set_color_scheme(Adw.ColorScheme.PREFER_LIGHT)
+
     def set_controller(self, controller: MainController) -> None:
         """Inject the controller and refresh the view."""
         self.controller = controller
@@ -194,6 +204,9 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self._is_initializing = True
         try:
             config = load_config()
+
+            # Apply theme
+            self.apply_theme(config.get("appearance", "System"))
 
             # Sidebar visibility
             self.sidebar.set_visible(config.get("sidebar_visible", True))
@@ -739,6 +752,31 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
 
         page = Adw.PreferencesPage()
         dialog.add(page)
+
+        # Appearance
+        appearance_group = Adw.PreferencesGroup(title="Appearance")
+        page.add(appearance_group)
+
+        appearance_row = Adw.ComboRow(title="Appearance")
+        appearance_model = Gtk.StringList.new(["System", "Light", "Dark"])
+        appearance_row.set_model(appearance_model)
+
+        current_appearance = config.get("appearance", "System")
+        if current_appearance == "Light":
+            appearance_row.set_selected(1)
+        elif current_appearance == "Dark":
+            appearance_row.set_selected(2)
+        else:
+            appearance_row.set_selected(0)
+
+        def on_appearance_changed(row: Adw.ComboRow, params: Any) -> None:
+            selected = row.get_selected_item().get_string()
+            self.apply_theme(selected)
+            config["appearance"] = selected
+            save_config(config)
+
+        appearance_row.connect("notify::selected", on_appearance_changed)
+        appearance_group.add(appearance_row)
 
         group = Adw.PreferencesGroup(title="General")
         page.add(group)
