@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Set up Python
+        run: uv python install 3.11
+      - name: Install dependencies
+        run: uv sync
+      - name: Run lint
+        run: uv run make lint
+      - name: Run typecheck
+        run: uv run make typecheck
+      - name: Run tests
+        run: uv run make test
+
+  build-appimage:
+    needs: test
+    runs-on: ubuntu-latest
+    container: appimage-builder/builder:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build AppImage
+        run: appimage-builder --recipe appimage-builder.yml
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: eshelf-appimage
+          path: eshelf-x86_64.AppImage
