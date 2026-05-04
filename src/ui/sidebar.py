@@ -1,13 +1,13 @@
 """Sidebar for category selection and management."""
 
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 gi.require_version("Gdk", "4.0")
-from gi.repository import Adw, Gdk, Gtk  # noqa: E402
+from gi.repository import Adw, Gdk, GObject, Gtk  # noqa: E402
 
 from src.models.category import Category  # noqa: E402
 
@@ -143,16 +143,17 @@ class Sidebar(Adw.Bin):  # type: ignore
         row.set_child(box)
 
         # Drop Target
-        drop_target = Gtk.DropTarget.new(str, Gdk.DragAction.MOVE)
+        # Support string array (GStrv) for multiple paths
+        drop_target = Gtk.DropTarget.new(GObject.TYPE_STRV, Gdk.DragAction.MOVE)
         drop_target.connect("drop", self.on_book_drop, identifier)
         row.add_controller(drop_target)
 
         return row
 
     def on_book_drop(
-        self, target: Gtk.DropTarget, value: str, x: float, y: float, identifier: str
+        self, target: Gtk.DropTarget, value: Any, x: float, y: float, identifier: str
     ) -> bool:
-        """Handle a book being dropped on a category row."""
+        """Handle book(s) being dropped on a category row."""
         if not self.on_book_dropped:
             return False
 
@@ -165,7 +166,15 @@ class Sidebar(Adw.Bin):  # type: ignore
         else:
             category_id = int(identifier)
 
-        self.on_book_dropped(value, category_id)
+        # Handle both single path (str) and multiple paths (list/GStrv)
+        if isinstance(value, str):
+            self.on_book_dropped(value, category_id)
+        elif isinstance(value, (list, tuple)):
+            for path in value:
+                self.on_book_dropped(path, category_id)
+        else:
+            return False
+
         return True
 
     def on_row_selected(

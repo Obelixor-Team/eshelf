@@ -22,17 +22,20 @@ class BookWidget(Gtk.Box):  # type: ignore
     def __init__(
         self,
         zoom_level: float = 1.0,
+        get_selected_books_callback: Optional[Callable[[], list[Book]]] = None,
     ) -> None:
         """Initialize the BookWidget.
 
         Args:
             zoom_level (float): Zoom factor for the cover size.
+            get_selected_books_callback (Callable): Callback to get all selected books.
         """
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         self.on_click_callback: Optional[Callable[[Book], None]] = None
         self.on_right_click_callback: Optional[Callable[[Gtk.Widget, Book], None]] = (
             None
         )
+        self.get_selected_books_callback = get_selected_books_callback
         self.book: Optional[Book] = None
         self.zoom_level = zoom_level
 
@@ -109,16 +112,24 @@ class BookWidget(Gtk.Box):  # type: ignore
     def _on_drag_prepare(
         self, source: Gtk.DragSource, x: float, y: float
     ) -> Optional[Gdk.ContentProvider]:
-        """Prepare the drag content (book path)."""
+        """Prepare the drag content (book paths)."""
         if not self.book:
             return None
+
+        # Determine which books to drag
+        paths = [self.book.path]
+        if self.get_selected_books_callback:
+            selected_books = self.get_selected_books_callback()
+            if self.book in selected_books:
+                paths = [b.path for b in selected_books]
 
         # Set drag icon
         paintable = self.image.get_paintable()
         if paintable:
             source.set_icon(paintable, int(x), int(y))
 
-        return Gdk.ContentProvider.new_for_value(self.book.path)
+        # Use GStrv (string array) for multiple paths
+        return Gdk.ContentProvider.new_for_value(paths)
 
     def _on_clicked(
         self,
