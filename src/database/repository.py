@@ -261,15 +261,26 @@ class BookRepository:
             ]
 
     def search_books(self, query: str) -> List[Book]:
-        """Search for books by title or author using a case-insensitive search."""
+        """Search for books by title or author using a keyword-based search."""
+        words = query.split()
+        if not words:
+            return list(self.get_all_books())
+
         with self._get_connection() as conn:
-            search_pattern = f"%{query}%"
+            clauses = []
+            params = []
+            for word in words:
+                clauses.append("(LOWER(title) LIKE ? OR LOWER(author) LIKE ?)")
+                search_pattern = f"%{word.lower()}%"
+                params.extend([search_pattern, search_pattern])
+
+            where_clause = " AND ".join(clauses)
             query_str = (
                 "SELECT path, title, author, cover_path, category_id, created_at "
                 "FROM books "
-                "WHERE LOWER(title) LIKE LOWER(?) OR LOWER(author) LIKE LOWER(?)"
+                f"WHERE {where_clause}"
             )
-            cursor = conn.execute(query_str, (search_pattern, search_pattern))
+            cursor = conn.execute(query_str, params)
             return [
                 Book(
                     path=row[0],

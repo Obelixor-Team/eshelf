@@ -225,6 +225,16 @@ def test_repository_search() -> None:
         assert len(results) == 1
         assert results[0].path == "2"
 
+        # Keyword search (order-independent)
+        results = repo.search_books("Programmer Pragmatic")
+        assert len(results) == 1
+        assert results[0].path == "3"
+
+        # Keyword search across title and author
+        results = repo.search_books("Martin Clean")
+        assert len(results) == 1
+        assert results[0].path == "2"
+
         # No results
         results = repo.search_books("Nonexistent")
         assert len(results) == 0
