@@ -1,6 +1,8 @@
 """Service for managing book metadata and categories."""
 
-from typing import List, Optional
+import logging
+import subprocess
+from typing import Callable, Dict, List, Optional
 
 from src.database.repository import BookRepository
 from src.models.book import Book
@@ -17,6 +19,18 @@ class BookService:
             repository (BookRepository): The repository for persistence.
         """
         self.repository = repository
+        self.logger = logging.getLogger(__name__)
+
+        # Strategy pattern for sorting
+        self._sort_strategies: Dict[str, Callable[[List[Book]], List[Book]]] = {
+            "Title": lambda books: sorted(books, key=lambda b: b.title.lower()),
+            "Author": lambda books: sorted(books, key=lambda b: b.author.lower()),
+            "Recently Added": lambda books: sorted(
+                books,
+                key=lambda b: b.created_at or b.path,
+                reverse=True,
+            ),
+        }
 
     def get_books(
         self,
@@ -42,18 +56,33 @@ class BookService:
         return self.repository.search_books(query)
 
     def sort_books(self, books: List[Book], sort_by: str) -> List[Book]:
-        """Sort books based on the given option."""
-        if sort_by == "Title":
-            return sorted(books, key=lambda b: b.title.lower())
-        elif sort_by == "Author":
-            return sorted(books, key=lambda b: b.author.lower())
-        elif sort_by == "Recently Added":
-            return sorted(
-                books,
-                key=lambda b: b.created_at or b.path,  # Fallback for None
-                reverse=True,
-            )
+        """Sort books based on the given option using registered strategies."""
+        strategy = self._sort_strategies.get(sort_by)
+        if strategy:
+            return strategy(books)
         return books
+
+    def register_sort_strategy(
+        self, name: str, strategy: Callable[[List[Book]], List[Book]]
+    ) -> None:
+        """Register a new sorting strategy."""
+        self._sort_strategies[name] = strategy
+
+    def open_book(self, book: Book) -> None:
+        """Open a book using the system's default application."""
+        try:
+            subprocess.run(
+                ["xdg-open", book.path],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            error_msg = f"Failed to open book {book.path}: {e}"
+            if isinstance(e, subprocess.CalledProcessError):
+                error_msg += f" (stderr: {e.stderr})"
+            self.logger.error(error_msg)
+            raise RuntimeError(error_msg) from e
 
     def add_book(self, book: Book) -> bool:
         """Add a book to the database. Return True if added, False if updated."""

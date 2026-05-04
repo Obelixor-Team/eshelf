@@ -1,10 +1,10 @@
 """Controller to coordinate between the UI and the backend services."""
 
 import logging
-import subprocess
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple
 
+from src.config import SUPPORTED_EXTENSIONS
 from src.database.repository import BookRepository
 from src.models.book import Book
 from src.models.category import Category
@@ -51,10 +51,7 @@ class MainController:
         limit: Optional[int] = None,
         offset: int = 0,
     ) -> List[Book]:
-        """Retrieve books from the repository, optionally filtered by category.
-
-        If category_id is None, retrieve all books.
-        """
+        """Retrieve books from the repository, optionally filtered by category."""
         return self.book_service.get_books(category_id, limit=limit, offset=offset)
 
     def get_uncategorized_books(self) -> List[Book]:
@@ -103,7 +100,7 @@ class MainController:
                 [
                     f
                     for f in dir_path.glob("**/*")
-                    if f.suffix.lower() in (".pdf", ".epub")
+                    if f.suffix.lower() in SUPPORTED_EXTENSIONS
                 ]
             )
 
@@ -127,15 +124,15 @@ class MainController:
             )
             total_added += added
             total_updated += updated
-            all_failed.extend(failed)
 
             # We need to increment processed_count by the number of files in this dir
             dir_files = [
                 f
                 for f in Path(lib_dir).glob("**/*")
-                if f.suffix.lower() in (".pdf", ".epub")
+                if f.suffix.lower() in SUPPORTED_EXTENSIONS
             ]
             processed_count += len(dir_files)
+            all_failed.extend(failed)
 
         return total_added, total_updated, all_failed
 
@@ -154,7 +151,7 @@ class MainController:
     def import_file(self, file_path: str) -> bool:
         """Import a single book file."""
         path = Path(file_path)
-        if path.suffix.lower() not in (".pdf", ".epub"):
+        if path.suffix.lower() not in SUPPORTED_EXTENSIONS:
             return False
 
         try:
@@ -246,17 +243,9 @@ class MainController:
     def open_book(self, book: Book) -> None:
         """Open a book using the system's default application."""
         try:
-            subprocess.run(
-                ["xdg-open", book.path],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-        except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            error_msg = f"Failed to open book {book.path}: {e}"
-            if isinstance(e, subprocess.CalledProcessError):
-                error_msg += f" (stderr: {e.stderr})"
-
-            self.logger.error(error_msg)
+            self.book_service.open_book(book)
+        except RuntimeError as e:
             if self.error_callback:
-                self.error_callback(error_msg)
+                self.error_callback(str(e))
+            else:
+                self.logger.error(str(e))

@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple
 
+from src.config import SUPPORTED_EXTENSIONS
 from src.database.repository import BookRepository
 from src.models.book import Book
 from src.services.exceptions import ExtractionError
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class BookScanner:
-    """Scans directories for PDF and EPUB files and updates the repository."""
+    """Scans directories for supported book files and updates the repository."""
 
     def __init__(
         self,
@@ -62,7 +63,9 @@ class BookScanner:
         # Find all supported files first to determine total count
         pattern = "**/*" if recursive else "*"
         all_files = [
-            f for f in dir_path.glob(pattern) if f.suffix.lower() in (".pdf", ".epub")
+            f
+            for f in dir_path.glob(pattern)
+            if f.suffix.lower() in SUPPORTED_EXTENSIONS
         ]
         total_files = len(all_files)
 

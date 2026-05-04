@@ -59,6 +59,8 @@ except ImportError:
 
 CONFIG_FILE = os.path.join(user_config_dir("eshelf"), "config.json")
 
+SUPPORTED_EXTENSIONS = (".pdf", ".epub")
+
 DEFAULT_CONFIG = {
     "books_per_line": 6,
     "zoom_level": 1.0,
