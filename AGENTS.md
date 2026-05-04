@@ -9,6 +9,8 @@
 - `make clean`: Clean cache files
 
 ## Toolchain & Conventions
+- **Python Version**: 3.11
+- **UI Framework**: PyGObject (GTK)
 - **Package Manager**: `uv`
 - **Linting/Formatting**: `ruff` using Google docstring convention
 - **Type Checking**: `mypy` in strict mode
