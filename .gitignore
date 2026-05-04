@@ -7,3 +7,15 @@ __pycache__/
 src/eshelf.egg-info/
 Screenshot_20260430_202343.png
 .gitnexus
+
+# AppImage and CI
+AppDir/
+*.AppImage
+*.AppImage.tar.gz
+
+# IDE/OS files
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
