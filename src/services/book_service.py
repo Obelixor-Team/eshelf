@@ -2,6 +2,7 @@
 
 import logging
 import subprocess
+from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
 from src.database.repository import BookRepository
@@ -78,10 +79,14 @@ class BookService:
                 text=True,
             )
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            error_msg = f"Failed to open book {book.path}: {e}"
-            if isinstance(e, subprocess.CalledProcessError):
-                error_msg += f" (stderr: {e.stderr})"
-            self.logger.error(error_msg)
+            file_ext = Path(book.path).suffix.upper().lstrip(".")
+            error_msg = (
+                f"Could not open {file_ext} file.\n\n"
+                "Please ensure you have a default application installed "
+                "for this file type (e.g., Evince or Okular for PDF, "
+                "Foliate for EPUB)."
+            )
+            self.logger.error(f"Failed to open book {book.path}: {e}")
             raise RuntimeError(error_msg) from e
 
     def add_book(self, book: Book) -> bool:

@@ -312,6 +312,7 @@ def test_controller_import_file_extraction_error(
 
     with patch("src.controller.main_controller.Path") as mock_path:
         mock_path.return_value.suffix = ".pdf"
+        mock_path.return_value.name = "book.pdf"
         # Mock metadata extractor to raise ExtractionError
         with patch(
             "src.controller.main_controller.MetadataExtractor.extract",
@@ -319,4 +320,8 @@ def test_controller_import_file_extraction_error(
         ):
             success = controller.import_file("/path/to/book.pdf")
             assert success is False
-            controller.error_callback.assert_called_once_with("Extraction failed")
+            expected_msg = (
+                "Could not extract metadata from book.pdf.\n\n"
+                "The file may be corrupted or in an unsupported format."
+            )
+            controller.error_callback.assert_called_once_with(expected_msg)

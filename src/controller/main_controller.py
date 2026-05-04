@@ -167,11 +167,14 @@ class MainController:
             self.book_service.add_book(book)
             return True
         except ExtractionError as e:
-            error_msg = str(e)
+            error_msg = (
+                f"Could not extract metadata from {path.name}.\n\n"
+                "The file may be corrupted or in an unsupported format."
+            )
             if self.error_callback:
                 self.error_callback(error_msg)
             else:
-                self.logger.error(error_msg)
+                self.logger.error(f"{error_msg} Details: {e}")
             return False
 
     def import_path(
