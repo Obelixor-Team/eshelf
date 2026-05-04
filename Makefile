@@ -19,6 +19,9 @@ typecheck: ## Run static type checking
 pre-commit: ## Run pre-commit hooks
 	pre-commit run --all-files --verbose
 
+build-appimage: ## Build the AppImage
+	appimage-builder --recipe appimage-builder.yml
+
 clean: ## Clean up cache files
 	find . -type d -name "__pycache__" -exec rm -rf {} +
-	rm -rf .pytest_cache .ruff_cache .mypy_cache .coverage
+	rm -rf .pytest_cache .ruff_cache .mypy_cache .coverage AppDir *.AppImage
