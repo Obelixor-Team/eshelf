@@ -1,6 +1,6 @@
 [project]
 name = "eshelf"
-version = "0.4.0"
+version = "0.5.0"
 description = "A dedicated Linux shelf app for books"
 dependencies = [
     "pdf2image",
@@ -13,7 +13,7 @@ dependencies = [
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.4.0"
+version = "0.5.0"
 tag_format = "v$version"
 version_files = ["pyproject.toml"]
 changelog_file = "CHANGELOG.md"
@@ -37,6 +37,7 @@ explicit_package_bases = true
 
 [dependency-groups]
 dev = [
+    "commitizen>=4.15.0",
     "mypy>=1.20.2",
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
