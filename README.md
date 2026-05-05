@@ -6,10 +6,12 @@
 
 - **Keyword-based Search**: Flexible, order-independent searching across book titles and authors.
 - **Library Organization**: Organize your books into custom categories with sidebar navigation.
+- **Drag-and-Drop**: Supports bulk actions; move multiple books between categories instantly.
 - **Modern UI**: Built with Libadwaita for a sleek, responsive design that follows GNOME standards.
 - **Customizable**: Toggle between Light, Dark, or System appearance modes.
-- **Easy Imports**: Recursive folder imports with background processing to keep the UI responsive.
+- **Easy Imports**: Recursive folder imports with background processing.
 - **Performance**: High-performance library scanning with multi-threaded metadata extraction.
+- **Maintenance**: Automated cache pruning ensures orphaned thumbnails are cleaned up when books are removed.
 
 ## Getting Started
 
