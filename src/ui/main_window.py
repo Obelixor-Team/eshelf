@@ -1,6 +1,7 @@
 """Main window for the eShelf application."""
 
 import threading
+import logging
 from typing import Any, List, Optional, Tuple
 
 import gi
@@ -28,6 +29,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         super().__init__(**kwargs)
         self.set_title("eShelf")
         self.set_default_size(1000, 600)
+        self.logger = logging.getLogger(__name__)
         self._is_initializing = False
         self._save_timeout_id: Optional[int] = None
         self._grid_request_id = 0
@@ -392,9 +394,10 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         sort_by: Optional[str] = None,
     ) -> None:
         """Update the grid with books from the controller."""
+        self.logger.info("DEBUG: refresh_grid called")
         self._grid_request_id += 1
         books = self._fetch_books(category_id, all_books, search_text, sort_by)
-        self.grid.update_books(books)
+        self._apply_grid_update(books, self._grid_request_id)
 
         if not books:
             self.stack.set_visible_child_name("empty")

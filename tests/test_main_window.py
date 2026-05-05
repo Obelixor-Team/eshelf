@@ -328,7 +328,6 @@ def test_on_settings_clicked(
     mock_dialog_instance.present.assert_called_once()
 
 
-
 def test_on_category_selected_initializing() -> None:
     """Test category selection during initialization."""
     window = MainWindow()
