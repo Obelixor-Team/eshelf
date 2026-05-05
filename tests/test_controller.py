@@ -71,13 +71,17 @@ def test_controller_scan_library(controller_env: tuple[MainController, str]) -> 
 def test_controller_cleanup_library(controller_env: tuple[MainController, str]) -> None:
     """Test cleanup via controller."""
     controller, lib_dir = controller_env
-    mock_scanner = MagicMock()
-    mock_scanner.cleanup_all.return_value = 5
-    controller.scanner = mock_scanner
+    # Add a book that doesn't exist. Path needs to be inside the temporary dir
+    # to be 'monitored' but it does not exist on disk.
+    ghost_path = os.path.join(lib_dir, "ghost.pdf")
+    book = Book(path=ghost_path, title="Ghost", author="None")
+
+    # Mock repository behavior
+    controller.repository.get_all_books.return_value = [book]
 
     removed = controller.cleanup_library()
-    assert removed == 5
-    mock_scanner.cleanup_all.assert_called_once_with([lib_dir])
+    assert removed == 1
+    controller.repository.remove_book.assert_called_with(ghost_path)
 
 
 @patch("subprocess.run")

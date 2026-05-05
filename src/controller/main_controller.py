@@ -211,7 +211,40 @@ class MainController:
 
     def cleanup_library(self) -> int:
         """Remove missing books and return count of removed books."""
-        return self.scanner.cleanup_all(self.library_dirs)
+        all_books = list(self.repository.get_all_books())
+        self.logger.info(f"DEBUG: Books in repository: {len(all_books)}")
+        dir_paths = [Path(d).absolute() for d in self.library_dirs]
+        removed_count = 0
+
+        for book in all_books:
+            book_path = Path(book.path).absolute()
+            exists = book_path.exists()
+
+            # Check if book is within any of the monitored directories
+            in_monitored_dir = any(
+                book_path.is_relative_to(lib_path) for lib_path in dir_paths
+            )
+
+            if not exists or not in_monitored_dir:
+                # Remove cover if it exists
+                self.logger.debug(
+                    f"Cleaning up book: {book.path}, "
+                    f"exists: {exists}, monitored: {in_monitored_dir}"
+                )
+                if book.cover_path:
+                    cover_path = Path(book.cover_path)
+                    if cover_path.exists():
+                        try:
+                            cover_path.unlink()
+                        except Exception as e:
+                            self.logger.error(
+                                f"Failed to delete cover {cover_path}: {e}"
+                            )
+
+                self.repository.remove_book(book.path)
+                removed_count += 1
+
+        return removed_count
 
     def clear_library(self) -> None:
         """Clear the database and remove all cached cover images."""
