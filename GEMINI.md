@@ -38,7 +38,7 @@ Always use the `Makefile` to ensure commands run in the correct environment (`.v
 - **Styling**: Adhere to `ruff` formatting. Line length is set to 88.
 - **Documentation**: Use Google-style docstrings for all public modules, classes, and functions.
 - **Concurrency**: Perform heavy operations (like folder imports or library scans) in background threads to keep the UI responsive. Use `GLib.idle_add` for UI updates from background threads.
-- **Git**: Follow Conventional Commits. Use `cz bump` (via `commitizen`) for versioning and changelog generation.
+- **Git**: Follow Conventional Commits. Use `uv run cz bump` for versioning, changelog generation, and automated tagging. Never manually update the version or create tags.
 - **GitNexus**: This project is indexed for AI-assisted engineering.
     - Run `npx gitnexus analyze` if the index becomes stale.
     - Use `npx gitnexus serve` to explore the codebase knowledge graph at `localhost:4747`.
