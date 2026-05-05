@@ -7,10 +7,12 @@ import gi  # noqa: E402
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Gio, Gtk  # noqa: E402
+from gi.repository import Gtk  # noqa: E402
 
 from src.config import load_config  # noqa: E402
+from src.database.repository import BookRepository
 from src.models.book import Book, BookObject  # noqa: E402
+from src.models.book_model import BookListModel
 from src.ui.book_widget import BookWidget  # noqa: E402
 
 
@@ -19,6 +21,7 @@ class ShelfGrid(Gtk.Box):  # type: ignore
 
     def __init__(
         self,
+        repository: BookRepository,
         on_book_selected_callback: Callable[[Book], None],
         on_book_right_clicked_callback: Optional[
             Callable[[Gtk.Widget, Book], None]
@@ -26,12 +29,13 @@ class ShelfGrid(Gtk.Box):  # type: ignore
     ) -> None:
         """Initialize the ShelfGrid."""
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        self.repository = repository
         self.on_book_selected = on_book_selected_callback
         self.on_book_right_clicked = on_book_right_clicked_callback
         self._config = load_config()
 
         # Model
-        self.store = Gio.ListStore.new(BookObject)
+        self.model = BookListModel(self.repository)
 
         # Factory
         factory = Gtk.SignalListItemFactory()
@@ -39,7 +43,7 @@ class ShelfGrid(Gtk.Box):  # type: ignore
         factory.connect("bind", self._on_factory_bind)
 
         # Selection Model
-        self.selection_model = Gtk.MultiSelection.new(self.store)
+        self.selection_model = Gtk.MultiSelection.new(self.model)
 
         # Grid View
         cols = self._config.get("books_per_line", 6)
@@ -105,29 +109,21 @@ class ShelfGrid(Gtk.Box):  # type: ignore
         self.grid_view.set_max_columns(cols)
         self.grid_view.set_min_columns(cols)
         self.grid_view.queue_resize()
+        self.update_books()  # Refresh with current model
 
-        # Force a refresh by re-adding items
-        books = [obj.book for obj in self.store]
-        self.update_books(books)
-
-    def update_books(self, books: list[Book]) -> None:
-        """Refresh the grid with a new list of books."""
-        # Create a new list store to force a UI refresh
-        self.store = Gio.ListStore.new(BookObject)
-        for book in books:
-            self.store.append(BookObject(book))
-
-        # Re-attach the store to the existing SelectionModel
-        self.selection_model.set_model(self.store)
+    def update_books(self, category_id: Optional[int] = None) -> None:
+        """Refresh the grid with a new model."""
+        self.model = BookListModel(self.repository, category_id=category_id)
+        self.selection_model.set_model(self.model)
         self.queue_draw()
 
     def get_selected_books(self) -> list[Book]:
         """Return the list of currently selected books."""
         selection = self.selection_model.get_selection()
         selected_books = []
-        for i in range(self.store.get_n_items()):
+        for i in range(self.model.do_get_n_items()):
             if selection.contains(i):
-                book_obj = self.store.get_item(i)
+                book_obj = self.model.do_get_item(i)
                 if isinstance(book_obj, BookObject):
                     selected_books.append(book_obj.book)
         return selected_books

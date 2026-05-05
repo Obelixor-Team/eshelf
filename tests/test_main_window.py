@@ -194,21 +194,16 @@ def test_on_book_selected(mock_controller: MagicMock) -> None:
 
 @patch("src.ui.main_window.MainController")
 def test_refresh_grid(mock_controller: MagicMock) -> None:
-    """Test refresh_grid updates the grid with correct books."""
+    """Test refresh_grid updates the grid."""
     window = MainWindow()
-    window.set_visible = MagicMock(
-        return_value=True
-    )  # Mocking set_visible not needed if we mock get_visible
+    window.set_visible = MagicMock(return_value=True)
     window.get_visible = MagicMock(return_value=True)
     window.controller = mock_controller
     window.grid = MagicMock()
-    mock_books = ["book1", "book2"]
-    mock_controller.get_books.return_value = mock_books
 
     window.refresh_grid(category_id=1, all_books=False)
 
-    mock_controller.get_books.assert_called_once_with(1)
-    window.grid.update_books.assert_called_once_with(mock_books)
+    window.grid.update_books.assert_called_once_with(1)
 
 
 @patch("src.ui.main_window.load_config")
@@ -587,13 +582,15 @@ def test_apply_grid_update() -> None:
     """Test _apply_grid_update with request IDs."""
     window = MainWindow()
     window.grid = MagicMock()
+    window.stack = MagicMock()
 
     # Correct request ID
     window._grid_request_id = 1
-    window.set_visible(True)
+    window.set_visible = MagicMock(return_value=True)
+    window.get_visible = MagicMock(return_value=True)
     window._apply_grid_update([MagicMock()], 1)
-    window.grid.update_books.assert_called_once()
 
+    window.stack.set_visible_child_name.assert_called_once_with("grid")
     # Incorrect request ID
     window.grid.update_books.reset_mock()
     window._apply_grid_update([MagicMock()], 0)

@@ -1,8 +1,9 @@
 """CLI utility to test settings reactivity in eShelf."""
 
 import argparse
-import json
-from src.config import CONFIG_FILE, load_config, save_config
+
+from src.config import load_config, save_config
+
 
 def main():
     parser = argparse.ArgumentParser(description="Test eShelf settings reactivity.")
@@ -11,13 +12,13 @@ def main():
     args = parser.parse_args()
 
     config = load_config()
-    
+
     changed = False
     if args.cols:
         config["books_per_line"] = args.cols
         changed = True
         print(f"Set books_per_line to: {args.cols}")
-        
+
     if args.zoom:
         config["zoom_level"] = args.zoom
         changed = True
@@ -25,9 +26,12 @@ def main():
 
     if changed:
         save_config(config)
-        print("Config saved. Please restart the app or trigger a reload to see changes.")
+        print(
+            "Config saved. Please restart the app or trigger a reload to see changes."
+        )
     else:
         print("No changes specified.")
+
 
 if __name__ == "__main__":
     main()

@@ -1,9 +1,9 @@
 """Tests for UI configuration reactivity."""
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+from src.database.repository import BookRepository
 from src.ui.shelf_grid import ShelfGrid
-from src.models.book import Book
 
 
 def test_shelf_grid_reactivity() -> None:
@@ -13,9 +13,11 @@ def test_shelf_grid_reactivity() -> None:
 
     # Initialize ShelfGrid
     with patch("src.ui.shelf_grid.load_config") as mock_load:
+        mock_repo = MagicMock(spec=BookRepository)
         mock_load.return_value = {"books_per_line": 6, "zoom_level": 1.0}
-        grid = ShelfGrid(on_book_selected_callback=on_book_selected)
-
+        grid = ShelfGrid(
+            repository=mock_repo, on_book_selected_callback=on_book_selected
+        )
     # Verify initial config (default is 6)
     assert grid.grid_view.get_max_columns() == 6
     # Update config

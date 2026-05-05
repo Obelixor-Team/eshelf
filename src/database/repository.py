@@ -233,7 +233,7 @@ class BookRepository:
             cursor = conn.execute("SELECT id, name FROM categories ORDER BY name")
             return [Category(id=row[0], name=row[1]) for row in cursor.fetchall()]
 
-    def get_books_by_category(self, category_id: Optional[int]) -> List[Book]:
+    def get_books_by_category(self, category_id: Optional[int] = None) -> List[Book]:
         """Retrieve books belonging to a specific category."""
         with self._get_connection() as conn:
             if category_id is None:
@@ -259,6 +259,46 @@ class BookRepository:
                 )
                 for row in cursor.fetchall()
             ]
+
+    def get_book_count(self, category_id: Optional[int] = None) -> int:
+        """Get the total number of books."""
+        with self._get_connection() as conn:
+            if category_id is None:
+                query = "SELECT COUNT(*) FROM books"
+                cursor = conn.execute(query)
+            else:
+                query = "SELECT COUNT(*) FROM books WHERE category_id = ?"
+                cursor = conn.execute(query, (category_id,))
+            return cast(int, cursor.fetchone()[0])
+
+    def get_books_by_category_paginated(
+        self, category_id: Optional[int] = None, limit: int = 1, offset: int = 0
+    ) -> Optional[Book]:
+        """Retrieve a single book from the database with offset."""
+        with self._get_connection() as conn:
+            if category_id is None:
+                query = (
+                    "SELECT path, title, author, cover_path, category_id, created_at "
+                    "FROM books LIMIT ? OFFSET ?"
+                )
+                cursor = conn.execute(query, (limit, offset))
+            else:
+                query = (
+                    "SELECT path, title, author, cover_path, category_id, created_at "
+                    "FROM books WHERE category_id = ? LIMIT ? OFFSET ?"
+                )
+                cursor = conn.execute(query, (category_id, limit, offset))
+            row = cursor.fetchone()
+            if row:
+                return Book(
+                    path=row[0],
+                    title=row[1],
+                    author=row[2],
+                    cover_path=row[3],
+                    category_id=row[4],
+                    created_at=datetime.fromisoformat(row[5]) if row[5] else None,
+                )
+            return None
 
     def search_books(self, query: str) -> List[Book]:
         """Search for books by title or author using a keyword-based search."""

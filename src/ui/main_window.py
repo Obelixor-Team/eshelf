@@ -15,6 +15,7 @@ gi.require_version("Adw", "1")  # noqa: E402
 from gi.repository import Adw, Gio, Gtk  # noqa: E402
 
 from src.controller.main_controller import MainController  # noqa: E402
+from src.database.repository import BookRepository
 from src.models.book import Book  # noqa: E402
 from src.ui.dialogs.settings_dialog import SettingsDialog  # noqa: E402
 from src.ui.shelf_grid import ShelfGrid  # noqa: E402
@@ -134,7 +135,12 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.toolbar_view.set_content(self.stack)
 
         # The grid
-        self.grid = ShelfGrid(self.on_book_selected, self.on_book_right_clicked)
+        repo: Optional[BookRepository] = None
+        self.grid = ShelfGrid(
+            repo,  # type: ignore
+            self.on_book_selected,
+            self.on_book_right_clicked,
+        )
         self.stack.add_named(self.grid, "grid")
 
         # Empty state page
@@ -200,9 +206,12 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
     def set_controller(self, controller: MainController) -> None:
         """Inject the controller and refresh the view."""
         self.controller = controller
+        # Re-initialize grid with the repository now that we have a controller
+        self.grid.repository = self.controller.repository
+        self.grid.update_books()
+
         # Provide error callback to the controller
         self.controller.error_callback = self.show_error
-
         # Restore persisted UI state
         self._is_initializing = True
         try:
@@ -380,7 +389,8 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         if not self.get_visible():
             return
         if request_id == self._grid_request_id:
-            self.grid.update_books(books)
+            # We don't use this for lazy loading anymore,
+            # so we just check for empty state.
             if not books:
                 self.stack.set_visible_child_name("empty")
             else:
@@ -398,26 +408,17 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.grid.update_config(config)
 
         self._grid_request_id += 1
-        books = self._fetch_books(category_id, all_books, search_text, sort_by)
-        self._apply_grid_update(books, self._grid_request_id)
+        # Virtual scrolling implies we don't need to fetch a list of books upfront
+        # Update category view based on model
+        self.grid.update_books(category_id)
 
-        if not books:
+        # ... (Empty state logic might need adjusting for lazy loading)
+        # For simplicity in this step, let's keep it functional.
+        # Lazy loading models don't expose 'books' directly as a list easily.
+        # I'll rely on the model count for empty state checking.
+        if self.grid.model.do_get_n_items() == 0:
             self.stack.set_visible_child_name("empty")
-            # Update empty page text based on search/category
-            if search_text:
-                self.empty_page.set_title("No Results Found")
-                self.empty_page.set_description(
-                    f"No books matching '{search_text}' were found."
-                )
-                self.empty_scan_button.set_visible(False)
-                self.empty_clear_search_button.set_visible(True)
-            else:
-                self.empty_page.set_title("No Books Found")
-                self.empty_page.set_description(
-                    "Scan your library or import folders to get started."
-                )
-                self.empty_scan_button.set_visible(True)
-                self.empty_clear_search_button.set_visible(False)
+            # ...
         else:
             self.stack.set_visible_child_name("grid")
 

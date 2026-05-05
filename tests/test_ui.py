@@ -1,11 +1,14 @@
 """Tests for UI components."""
 
 from unittest.mock import MagicMock, patch
-from src.ui.book_widget import BookWidget
-from src.models.book import Book
+
 import gi
+
+from src.models.book import Book
+from src.ui.book_widget import BookWidget
+
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk
+
 
 def test_book_widget_bind_no_cover():
     """Test binding with no cover path."""
@@ -13,6 +16,7 @@ def test_book_widget_bind_no_cover():
     book = Book(title="No Cover", path="/tmp/test.pdf", author="Author")
     widget.bind(book, on_click_callback=MagicMock())
     assert widget.image.get_paintable() is None
+
 
 def test_book_widget_bind_missing_cover_file():
     """Test binding with a non-existent cover path (should not log error)."""
@@ -31,6 +35,7 @@ def test_book_widget_bind_missing_cover_file():
         # Verify no error is logged when file is missing
         mock_logger.error.assert_not_called()
     assert widget.image.get_paintable() is None
+
 
 def test_book_widget_bind_cover_loading_error():
     """Test error handling when loading a cover image fails."""
