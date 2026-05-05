@@ -1,7 +1,7 @@
 """Tests for UI configuration reactivity."""
 
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from src.ui.shelf_grid import ShelfGrid
 from src.models.book import Book
 

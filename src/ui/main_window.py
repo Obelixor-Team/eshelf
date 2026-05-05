@@ -1,7 +1,7 @@
 """Main window for the eShelf application."""
 
-import threading
 import logging
+import threading
 from typing import Any, List, Optional, Tuple
 
 import gi
@@ -394,7 +394,9 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         sort_by: Optional[str] = None,
     ) -> None:
         """Update the grid with books from the controller."""
-        self.logger.info("DEBUG: refresh_grid called")
+        config = load_config()
+        self.grid.update_config(config)
+
         self._grid_request_id += 1
         books = self._fetch_books(category_id, all_books, search_text, sort_by)
         self._apply_grid_update(books, self._grid_request_id)
