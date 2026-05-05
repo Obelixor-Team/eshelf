@@ -1,3 +1,5 @@
+"""UI component for the book grid using Gtk.GridView."""
+
 from typing import Any, Callable, Optional
 
 import gi
@@ -11,8 +13,6 @@ from src.database.repository import BookRepository
 from src.models.book import Book, BookObject
 from src.models.book_model import BookListModel
 from src.ui.book_widget import BookWidget
-
-"""UI component for the book grid using Gtk.GridView."""
 
 
 class ShelfGrid(Gtk.Box):  # type: ignore

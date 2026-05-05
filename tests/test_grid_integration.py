@@ -6,7 +6,6 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-
 from src.database.repository import BookRepository
 from src.models.book import Book, BookObject
 from src.models.book_model import BookListModel

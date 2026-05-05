@@ -1,3 +1,5 @@
+"""Main window for the eShelf application."""
+
 import logging
 import threading
 from typing import Any, List, Optional, Tuple
@@ -15,8 +17,6 @@ from src.models.book import Book
 from src.ui.dialogs.settings_dialog import SettingsDialog
 from src.ui.shelf_grid import ShelfGrid
 from src.ui.sidebar import CategoryRow, Sidebar
-
-"""Main window for the eShelf application."""
 
 
 class MainWindow(Adw.ApplicationWindow):  # type: ignore
