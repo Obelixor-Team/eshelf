@@ -31,7 +31,7 @@ class SettingsDialog(Adw.PreferencesWindow):  # type: ignore
         self.config = load_config()
 
         page = Adw.PreferencesPage()
-        self.add(page)
+        self.set_content(page)
 
         self._setup_appearance(page)
         self._setup_general(page)
