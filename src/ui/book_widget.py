@@ -9,9 +9,9 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 gi.require_version("Gdk", "4.0")
-from gi.repository import Gdk, Gtk, Pango
+from gi.repository import Gdk, Gtk, Pango  # noqa: E402
 
-from src.models.book import Book
+from src.models.book import Book  # noqa: E402
 
 
 class BookWidget(Gtk.Box):  # type: ignore

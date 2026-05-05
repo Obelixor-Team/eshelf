@@ -4,7 +4,7 @@ import sqlite3
 import threading
 import time
 from datetime import datetime
-from typing import Callable, Iterator, List, Optional, ParamSpec, TypeVar, cast
+from typing import Any, Callable, Iterator, List, Optional, ParamSpec, TypeVar, cast
 
 from src.models.book import Book
 from src.models.category import Category
@@ -260,34 +260,66 @@ class BookRepository:
                 for row in cursor.fetchall()
             ]
 
-    def get_book_count(self, category_id: Optional[int] = None) -> int:
-        """Get the total number of books."""
+    def get_book_count(
+        self, category_id: Optional[int] = None, search_query: Optional[str] = None
+    ) -> int:
+        """Get the total number of books with optional category and search filters."""
         with self._get_connection() as conn:
-            if category_id is None:
-                query = "SELECT COUNT(*) FROM books"
-                cursor = conn.execute(query)
-            else:
-                query = "SELECT COUNT(*) FROM books WHERE category_id = ?"
-                cursor = conn.execute(query, (category_id,))
+            query = "SELECT COUNT(*) FROM books"
+            params: List[Any] = []
+            clauses = []
+
+            if category_id is not None:
+                clauses.append("category_id = ?")
+                params.append(category_id)
+
+            if search_query:
+                words = search_query.split()
+                for word in words:
+                    clauses.append("(LOWER(title) LIKE ? OR LOWER(author) LIKE ?)")
+                    pattern = f"%{word.lower()}%"
+                    params.extend([pattern, pattern])
+
+            if clauses:
+                query += " WHERE " + " AND ".join(clauses)
+
+            cursor = conn.execute(query, params)
             return cast(int, cursor.fetchone()[0])
 
     def get_books_by_category_paginated(
-        self, category_id: Optional[int] = None, limit: int = 1, offset: int = 0
+        self,
+        category_id: Optional[int] = None,
+        limit: int = 1,
+        offset: int = 0,
+        search_query: Optional[str] = None,
     ) -> Optional[Book]:
-        """Retrieve a single book from the database with offset."""
+        """Retrieve a single book with offset, category and search filtering."""
         with self._get_connection() as conn:
-            if category_id is None:
-                query = (
-                    "SELECT path, title, author, cover_path, category_id, created_at "
-                    "FROM books LIMIT ? OFFSET ?"
-                )
-                cursor = conn.execute(query, (limit, offset))
-            else:
-                query = (
-                    "SELECT path, title, author, cover_path, category_id, created_at "
-                    "FROM books WHERE category_id = ? LIMIT ? OFFSET ?"
-                )
-                cursor = conn.execute(query, (category_id, limit, offset))
+            query = (
+                "SELECT path, title, author, cover_path, category_id, created_at "
+                "FROM books"
+            )
+            params: List[Any] = []
+            clauses = []
+
+            if category_id is not None:
+                clauses.append("category_id = ?")
+                params.append(category_id)
+
+            if search_query:
+                words = search_query.split()
+                for word in words:
+                    clauses.append("(LOWER(title) LIKE ? OR LOWER(author) LIKE ?)")
+                    pattern = f"%{word.lower()}%"
+                    params.extend([pattern, pattern])
+
+            if clauses:
+                query += " WHERE " + " AND ".join(clauses)
+
+            query += " LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
+
+            cursor = conn.execute(query, params)
             row = cursor.fetchone()
             if row:
                 return Book(

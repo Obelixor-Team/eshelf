@@ -6,13 +6,13 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Gtk
+from gi.repository import Gtk  # noqa: E402
 
-from src.config import load_config
-from src.database.repository import BookRepository
-from src.models.book import Book, BookObject
-from src.models.book_model import BookListModel
-from src.ui.book_widget import BookWidget
+from src.config import load_config  # noqa: E402
+from src.database.repository import BookRepository  # noqa: E402
+from src.models.book import Book, BookObject  # noqa: E402
+from src.models.book_model import BookListModel  # noqa: E402
+from src.ui.book_widget import BookWidget  # noqa: E402
 
 
 class ShelfGrid(Gtk.Box):  # type: ignore
@@ -32,6 +32,9 @@ class ShelfGrid(Gtk.Box):  # type: ignore
         self.on_book_selected = on_book_selected_callback
         self.on_book_right_clicked = on_book_right_clicked_callback
         self._config = load_config()
+
+        self._current_category_id: Optional[int] = None
+        self._current_search_query: Optional[str] = None
 
         # Model
         self.model = BookListModel(self.repository)
@@ -108,11 +111,22 @@ class ShelfGrid(Gtk.Box):  # type: ignore
         self.grid_view.set_max_columns(cols)
         self.grid_view.set_min_columns(cols)
         self.grid_view.queue_resize()
-        self.update_books()  # Refresh with current model
+        # Refresh with current filters
+        self.update_books(self._current_category_id, self._current_search_query)
 
-    def update_books(self, category_id: Optional[int] = None) -> None:
+    def update_books(
+        self,
+        category_id: Optional[int] = None,
+        search_query: Optional[str] = None,
+    ) -> None:
         """Refresh the grid with a new model."""
-        self.model = BookListModel(self.repository, category_id=category_id)
+        self._current_category_id = category_id
+        self._current_search_query = search_query
+        self.model = BookListModel(
+            self.repository,
+            category_id=self._current_category_id,
+            search_query=self._current_search_query,
+        )
         self.selection_model.set_model(self.model)
         self.queue_draw()
 

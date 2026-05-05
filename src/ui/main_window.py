@@ -8,15 +8,15 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gio, GLib, Gtk
+from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
 
-from src.config import load_config, save_config
-from src.controller.main_controller import MainController
-from src.database.repository import BookRepository
-from src.models.book import Book
-from src.ui.dialogs.settings_dialog import SettingsDialog
-from src.ui.shelf_grid import ShelfGrid
-from src.ui.sidebar import CategoryRow, Sidebar
+from src.config import load_config, save_config  # noqa: E402
+from src.controller.main_controller import MainController  # noqa: E402
+from src.database.repository import BookRepository  # noqa: E402
+from src.models.book import Book  # noqa: E402
+from src.ui.dialogs.settings_dialog import SettingsDialog  # noqa: E402
+from src.ui.shelf_grid import ShelfGrid  # noqa: E402
+from src.ui.sidebar import CategoryRow, Sidebar  # noqa: E402
 
 
 class MainWindow(Adw.ApplicationWindow):  # type: ignore
@@ -457,7 +457,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self._grid_request_id += 1
         # Virtual scrolling implies we don't need to fetch a list of books upfront
         # Update category view based on model
-        self.grid.update_books(category_id)
+        self.grid.update_books(category_id, search_query=search_text)
 
         # ... (Empty state logic might need adjusting for lazy loading)
         # For simplicity in this step, let's keep it functional.

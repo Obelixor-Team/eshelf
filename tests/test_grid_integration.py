@@ -6,11 +6,11 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from src.database.repository import BookRepository
-from src.models.book import Book, BookObject
-from src.models.book_model import BookListModel
-from src.ui.book_widget import BookWidget
-from src.ui.shelf_grid import ShelfGrid
+from src.database.repository import BookRepository  # noqa: E402
+from src.models.book import Book, BookObject  # noqa: E402
+from src.models.book_model import BookListModel  # noqa: E402
+from src.ui.book_widget import BookWidget  # noqa: E402
+from src.ui.shelf_grid import ShelfGrid  # noqa: E402
 
 
 def test_shelf_grid_layout_columns() -> None:
@@ -95,8 +95,10 @@ def test_shelf_grid_get_selected_books() -> None:
 
     # Select books 0 and 2
     mock_selection.contains.side_effect = lambda i: i in [0, 2]
-    mock_repo.get_books_by_category_paginated.side_effect = lambda cat, limit, offset: (
-        Book(path=f"/tmp/book{offset}.pdf", title=f"Book {offset}", author="Author")
+    mock_repo.get_books_by_category_paginated.side_effect = (
+        lambda cat, limit, offset, search_query=None: Book(
+            path=f"/tmp/book{offset}.pdf", title=f"Book {offset}", author="Author"
+        )
     )
 
     selected = grid.get_selected_books()

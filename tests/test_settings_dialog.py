@@ -1,13 +1,13 @@
+"""Tests for the SettingsDialog component."""
+
 from unittest.mock import MagicMock, patch
 
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk
+from gi.repository import Gtk  # noqa: E402
 
-from src.ui.dialogs.settings_dialog import SettingsDialog
-
-"""Tests for the SettingsDialog component."""
+from src.ui.dialogs.settings_dialog import SettingsDialog  # noqa: E402
 
 
 @patch("src.ui.dialogs.settings_dialog.load_config")

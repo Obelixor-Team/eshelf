@@ -15,11 +15,13 @@ class BookListModel(GObject.Object, Gio.ListModel):  # type: ignore
         self,
         repository: Optional[BookRepository] = None,
         category_id: Optional[int] = None,
+        search_query: Optional[str] = None,
     ) -> None:
         """Initialize the model."""
         super().__init__()
         self.repository = repository
         self.category_id = category_id
+        self.search_query = search_query
         self._n_items = self._get_count()
         self._cache: dict[int, BookObject] = {}
 
@@ -27,7 +29,9 @@ class BookListModel(GObject.Object, Gio.ListModel):  # type: ignore
         """Get the total number of books."""
         if not self.repository:
             return 0
-        return self.repository.get_book_count(self.category_id)
+        return self.repository.get_book_count(
+            self.category_id, search_query=self.search_query
+        )
 
     def do_get_item_type(self) -> GObject.GType:
         """Return the GType of the items in the list."""
@@ -46,7 +50,10 @@ class BookListModel(GObject.Object, Gio.ListModel):  # type: ignore
             # Fetch the book from the repository
             if self.repository:
                 book = self.repository.get_books_by_category_paginated(
-                    self.category_id, limit=1, offset=position
+                    self.category_id,
+                    limit=1,
+                    offset=position,
+                    search_query=self.search_query,
                 )
                 if book:
                     self._cache[position] = BookObject(book)

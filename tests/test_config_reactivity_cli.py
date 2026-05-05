@@ -6,6 +6,7 @@ from src.config import load_config, save_config
 
 
 def main():
+    """Run the CLI utility to test settings reactivity."""
     parser = argparse.ArgumentParser(description="Test eShelf settings reactivity.")
     parser.add_argument("--cols", type=int, help="Number of books per line")
     parser.add_argument("--zoom", type=float, help="Zoom level for covers")

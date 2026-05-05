@@ -4,14 +4,23 @@
 
 ## Key Features
 
-- **Keyword-based Search**: Flexible, order-independent searching across book titles and authors.
+- **Virtual Scrolling & Lazy Loading**: Efficiently handle thousands of books with minimal memory overhead and instant UI responsiveness using GTK4 `GridView`.
+- **Keyword-based Search**: Flexible, order-independent searching across book titles and authors, integrated with lazy-loading for optimal performance.
 - **Library Organization**: Organize your books into custom categories with sidebar navigation.
 - **Drag-and-Drop**: Supports bulk actions; move multiple books between categories instantly.
 - **Modern UI**: Built with Libadwaita for a sleek, responsive design that follows GNOME standards.
 - **Customizable**: Toggle between Light, Dark, or System appearance modes.
 - **Easy Imports**: Recursive folder imports with background processing.
-- **Performance**: High-performance library scanning with multi-threaded metadata extraction.
+- **Performance**: High-performance library scanning with multi-threaded metadata extraction and database-level pagination.
 - **Maintenance**: Automated cache pruning ensures orphaned thumbnails are cleaned up when books are removed.
+
+## Recent Improvements (since v0.8.3)
+
+- **Gtk.GridView Integration**: Migrated from a standard FlowBox to a virtualized GridView for significant performance improvements in large libraries.
+- **Lazy Loading Model**: Implemented a custom `GListModel` that fetches book data from the database on-demand, dramatically reducing initial load times and memory usage.
+- **Search Optimization**: Re-engineered search functionality to work seamlessly with the virtualized grid, ensuring fast filtering across any library size.
+- **Architecture Refactor**: Cleaned up the `MainWindow` structure and improved shutdown procedures for better stability.
+
 
 ## Getting Started
 
