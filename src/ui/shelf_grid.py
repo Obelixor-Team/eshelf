@@ -102,8 +102,6 @@ class ShelfGrid(Gtk.Box):  # type: ignore
         """Update the cached configuration and force a grid refresh."""
         self._config = config
         cols = self._config.get("books_per_line", 6)
-        zoom = self._config.get("zoom_level", 1.0)
-        print(f"DEBUG: Updating ShelfGrid config - Cols: {cols}, Zoom: {zoom}")
         self.grid_view.set_max_columns(cols)
         self.grid_view.set_min_columns(cols)
         self.grid_view.queue_resize()
