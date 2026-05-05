@@ -1,3 +1,5 @@
+from pathlib import Path
+
 """UI component representing a single book on the shelf."""
 
 import logging
@@ -100,11 +102,15 @@ class BookWidget(Gtk.Box):  # type: ignore
         self.label.set_label(book.title)
 
         if book.cover_path:
-            try:
-                texture = Gdk.Texture.new_from_filename(book.cover_path)
-                self.image.set_paintable(texture)
-            except Exception as e:
-                self.logger.error(f"Error loading cover image: {e}")
+            cover_path = Path(book.cover_path)
+            if cover_path.exists():
+                try:
+                    texture = Gdk.Texture.new_from_filename(book.cover_path)
+                    self.image.set_paintable(texture)
+                except Exception as e:
+                    self.logger.error(f"Error loading cover image: {e}")
+                    self.image.set_paintable(None)
+            else:
                 self.image.set_paintable(None)
         else:
             self.image.set_paintable(None)
