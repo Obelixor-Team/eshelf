@@ -260,15 +260,14 @@ class MainController:
         cache_path = Path(self.extractor.cache_dir)
         self.logger.info(f"Clearing cache at {cache_path}")
         if cache_path.exists() and cache_path.is_dir():
-            count = 0
             for item in cache_path.iterdir():
                 if item.is_file():
                     try:
                         item.unlink()
-                        count += 1
+                    except FileNotFoundError:
+                        pass
                     except Exception as e:
                         self.logger.error(f"Failed to delete {item}: {e}")
-            self.logger.info(f"Removed {count} files from cache")
         else:
             self.logger.debug(f"Cache path {cache_path} is invalid")
 
