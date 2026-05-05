@@ -181,6 +181,8 @@ class SettingsDialog(Adw.PreferencesWindow):  # type: ignore
 
     def _on_clear_library(self, btn: Any) -> None:
         self.controller.clear_library()
+        if self.on_save_cb:
+            self.on_save_cb()
         self.close()
 
     def _on_add_library(self, group: Adw.PreferencesGroup) -> None:
