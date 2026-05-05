@@ -12,11 +12,12 @@ def test_shelf_grid_reactivity() -> None:
     on_book_selected = MagicMock()
 
     # Initialize ShelfGrid
-    grid = ShelfGrid(on_book_selected_callback=on_book_selected)
+    with patch("src.ui.shelf_grid.load_config") as mock_load:
+        mock_load.return_value = {"books_per_line": 6, "zoom_level": 1.0}
+        grid = ShelfGrid(on_book_selected_callback=on_book_selected)
 
     # Verify initial config (default is 6)
     assert grid.grid_view.get_max_columns() == 6
-
     # Update config
     new_config = {"books_per_line": 4, "zoom_level": 2.0}
     grid.update_config(new_config)
