@@ -309,19 +309,24 @@ def test_on_cleanup_clicked(mock_controller: MagicMock, mock_thread: MagicMock) 
     assert mock_thread.call_args[1]["daemon"] is True
 
 
-@patch("src.ui.main_window.Adw.PreferencesDialog")
+@patch("src.ui.main_window.SettingsDialog")
 @patch("src.ui.main_window.load_config")
 def test_on_settings_clicked(
-    mock_load_config: MagicMock, mock_dialog: MagicMock
+    mock_load_config: MagicMock, mock_dialog_class: MagicMock
 ) -> None:
     """Test settings dialog initiation."""
     window = MainWindow()
+    window.controller = MagicMock()
     mock_load_config.return_value = {"books_per_line": 6, "zoom_level": 1.0}
 
-    window.on_settings_clicked(MagicMock())
+    # Mock the instance returned by SettingsDialog()
+    mock_dialog_instance = MagicMock()
+    mock_dialog_class.return_value = mock_dialog_instance
 
-    mock_dialog_instance = mock_dialog.return_value
+    window.on_settings_clicked(MagicMock())
+    mock_dialog_class.assert_called_once()
     mock_dialog_instance.present.assert_called_once()
+
 
 
 def test_on_category_selected_initializing() -> None:
