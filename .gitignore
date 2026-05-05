@@ -19,3 +19,4 @@ AppDir/
 .DS_Store
 *.swp
 *.swo
+htmlcov/
