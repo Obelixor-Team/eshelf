@@ -111,9 +111,14 @@ class ShelfGrid(Gtk.Box):  # type: ignore
 
     def update_books(self, books: list[Book]) -> None:
         """Refresh the grid with a new list of books."""
-        self.store.remove_all()
+        # Create a new list store to force a UI refresh
+        self.store = Gio.ListStore.new(BookObject)
         for book in books:
             self.store.append(BookObject(book))
+
+        # Re-attach the store to the existing SelectionModel
+        self.selection_model.set_model(self.store)
+        self.queue_draw()
 
     def get_selected_books(self) -> list[Book]:
         """Return the list of currently selected books."""

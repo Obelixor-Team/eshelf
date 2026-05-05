@@ -196,6 +196,8 @@ def test_on_book_selected(mock_controller: MagicMock) -> None:
 def test_refresh_grid(mock_controller: MagicMock) -> None:
     """Test refresh_grid updates the grid with correct books."""
     window = MainWindow()
+    window.set_visible = MagicMock(return_value=True) # Mocking set_visible not needed if we mock get_visible
+    window.get_visible = MagicMock(return_value=True)
     window.controller = mock_controller
     window.grid = MagicMock()
     mock_books = ["book1", "book2"]
