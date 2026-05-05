@@ -159,6 +159,7 @@ class SettingsDialog(Adw.PreferencesWindow):  # type: ignore
         return row
 
     def _on_save(self, btn: Any) -> None:
+        print("DEBUG: SettingsDialog _on_save called")
         self.config.update(
             {
                 "books_per_line": int(self.books_per_line_spin.get_value()),
@@ -172,7 +173,10 @@ class SettingsDialog(Adw.PreferencesWindow):  # type: ignore
         )
         save_config(self.config)
         if self.on_save_cb:
+            print("DEBUG: Calling on_save_cb")
             self.on_save_cb()
+        else:
+            print("DEBUG: on_save_cb is None")
         self.close()
 
     def _on_clear_library(self, btn: Any) -> None:
