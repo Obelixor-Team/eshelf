@@ -110,12 +110,15 @@ class MainController:
 
         processed_count = 0
         for lib_dir in self.library_dirs:
-            if not Path(lib_dir).is_dir():
+            # Filter files belonging to this directory
+            lib_path = Path(lib_dir).absolute()
+            dir_files = [f for f in all_files if f.is_relative_to(lib_path)]
+
+            if not dir_files:
                 continue
 
             def wrapped_callback(current: int, total: int) -> None:
                 if progress_callback:
-                    # 'total' here is per-directory, but we use global 'total_files'
                     progress_callback(processed_count + current, total_files)
 
             added, updated, failed = self.scanner.scan(
@@ -124,13 +127,6 @@ class MainController:
             )
             total_added += added
             total_updated += updated
-
-            # We need to increment processed_count by the number of files in this dir
-            dir_files = [
-                f
-                for f in Path(lib_dir).glob("**/*")
-                if f.suffix.lower() in SUPPORTED_EXTENSIONS
-            ]
             processed_count += len(dir_files)
             all_failed.extend(failed)
 

@@ -114,30 +114,28 @@ class BookScanner:
         updated = 0
         failed_files: List[str] = []
 
+        results: List[Tuple[Optional[Book], Optional[str]]] = []
         with ThreadPoolExecutor(max_workers=4) as executor:
-            future_to_file = {
-                executor.submit(self._process_file, f): f for f in all_files
-            }
-            for i, future in enumerate(future_to_file, 1):
+            futures = [executor.submit(self._process_file, f) for f in all_files]
+            for i, future in enumerate(futures, 1):
                 if progress_callback:
                     progress_callback(i, total_files)
+                results.append(future.result())
 
-                book, failed_path = future.result()
+        for book, failed_path in results:
+            if failed_path:
+                failed_files.append(failed_path)
+                continue
 
-                if failed_path:
-                    failed_files.append(failed_path)
-                    continue
+            if book is None:
+                continue
 
-                if book is None:
-                    continue
-
-                existing = self.repository.get_book_by_path(book.path)
-                if existing:
-                    self.repository.add_book(book)
-                    updated += 1
-                else:
-                    self.repository.add_book(book)
-                    added += 1
+            existing = self.repository.get_book_by_path(book.path)
+            self.repository.add_book(book)
+            if existing:
+                updated += 1
+            else:
+                added += 1
 
         return added, updated, failed_files
 
