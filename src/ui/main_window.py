@@ -2,7 +2,7 @@
 
 import logging
 import threading
-from typing import Any, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 import gi
 
@@ -28,13 +28,17 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.set_title("eShelf")
         self.set_default_size(1000, 600)
         self.logger = logging.getLogger(__name__)
+
+        # UI State
         self._is_initializing = False
         self._save_timeout_id: Optional[int] = None
         self._grid_request_id = 0
-        self.connect("close-request", self.on_close_request)
-
+        self._shutdown_event = threading.Event()
+        self._active_threads: List[threading.Thread] = []
         self.controller: Optional[MainController] = None
         self._error_dialog: Optional[Gtk.MessageDialog] = None
+
+        self.connect("close-request", self.on_close_request)
 
         # Main layout
         self.main_layout = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
@@ -139,6 +143,47 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             self.on_book_right_clicked,
         )
         self.stack.add_named(self.grid, "grid")
+
+        # Empty state page
+        self.empty_page = Adw.StatusPage()
+        self.empty_page.set_title("No Books Found")
+        self.empty_page.set_description(
+            "Scan your library or import folders to get started."
+        )
+        self.empty_page.set_icon_name("library-symbolic")
+
+        # Action buttons for empty state
+        self.empty_button_box = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL, spacing=12
+        )
+        self.empty_button_box.set_halign(Gtk.Align.CENTER)
+        self.empty_page.set_child(self.empty_button_box)
+
+        self.empty_scan_button = Gtk.Button(label="Scan Library")
+        self.empty_scan_button.add_css_class("suggested-action")
+        self.empty_scan_button.add_css_class("pill")
+        self.empty_scan_button.connect("clicked", self.on_scan_clicked)
+        self.empty_button_box.append(self.empty_scan_button)
+
+        self.empty_clear_search_button = Gtk.Button(label="Clear Search")
+        self.empty_clear_search_button.add_css_class("pill")
+        self.empty_clear_search_button.connect("clicked", self.on_clear_search_clicked)
+        self.empty_clear_search_button.set_visible(False)
+        self.empty_button_box.append(self.empty_clear_search_button)
+
+        self.stack.add_named(self.empty_page, "empty")
+        self.stack.set_visible_child_name("empty")
+
+        self.sidebar_visible = True
+
+        # Keyboard shortcuts
+        self.setup_shortcuts()
+
+    def _start_worker(self, target: Callable[[], None]) -> None:
+        """Start a daemon thread and keep track of it for graceful shutdown."""
+        thread = threading.Thread(target=target, daemon=True)
+        self._active_threads.append(thread)
+        thread.start()
 
         # Empty state page
         self.empty_page = Adw.StatusPage()
@@ -320,7 +365,12 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         GLib.idle_add(_show)
 
     def on_close_request(self, window: Adw.ApplicationWindow) -> bool:
-        """Ensure UI state is saved before closing."""
+        """Ensure UI state is saved and threads are shut down before closing."""
+        self._shutdown_event.set()
+        # Join threads briefly to let them clean up
+        for thread in self._active_threads:
+            if thread.is_alive():
+                thread.join(timeout=1.0)
         self.save_ui_state()
         return False
 
@@ -667,10 +717,10 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
                 added, updated, failed = controller.scan_library(
                     progress_callback=progress_update
                 )
-                GLib.idle_add(self.on_scan_finished, added, updated, failed)
+                if not self._shutdown_event.is_set():
+                    GLib.idle_add(self.on_scan_finished, added, updated, failed)
 
-        thread = threading.Thread(target=scan_worker, daemon=True)
-        thread.start()
+        self._start_worker(scan_worker)
 
     def update_progress(self, current: int, total: int) -> bool:
         """Update progress bar fraction."""
@@ -724,11 +774,13 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         def worker() -> None:
             try:
                 removed = controller.cleanup_library()
-                GLib.idle_add(self._on_cleanup_finished, removed)
+                if not self._shutdown_event.is_set():
+                    GLib.idle_add(self._on_cleanup_finished, removed)
             except Exception as e:
-                GLib.idle_add(self._on_cleanup_error, e)
+                if not self._shutdown_event.is_set():
+                    GLib.idle_add(self._on_cleanup_error, e)
 
-        threading.Thread(target=worker, daemon=True).start()
+        self._start_worker(worker)
 
     def _on_cleanup_finished(self, removed: int) -> bool:
         """Handle cleanup completion."""
