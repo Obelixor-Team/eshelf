@@ -1,19 +1,18 @@
-from pathlib import Path
-
 """UI component representing a single book on the shelf."""
 
 import logging
+from pathlib import Path
 from typing import Callable, Optional
 
-import gi  # noqa: E402
+import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 gi.require_version("Gdk", "4.0")
 
-from gi.repository import Gdk, Gtk, Pango  # noqa: E402
+from gi.repository import Gdk, Gtk, Pango
 
-from src.models.book import Book  # noqa: E402
+from src.models.book import Book
 
 
 class BookWidget(Gtk.Box):  # type: ignore

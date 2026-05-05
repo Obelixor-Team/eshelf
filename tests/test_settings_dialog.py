@@ -1,5 +1,3 @@
-"""Tests for the SettingsDialog component."""
-
 from unittest.mock import MagicMock, patch
 
 import gi
@@ -8,6 +6,8 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
 from src.ui.dialogs.settings_dialog import SettingsDialog
+
+"""Tests for the SettingsDialog component."""
 
 
 @patch("src.ui.dialogs.settings_dialog.load_config")

@@ -1,19 +1,18 @@
-"""UI component for the book grid using Gtk.GridView."""
-
 from typing import Any, Callable, Optional
 
-import gi  # noqa: E402
+import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
+from gi.repository import Gtk
 
-from gi.repository import Gtk  # noqa: E402
-
-from src.config import load_config  # noqa: E402
+from src.config import load_config
 from src.database.repository import BookRepository
-from src.models.book import Book, BookObject  # noqa: E402
+from src.models.book import Book, BookObject
 from src.models.book_model import BookListModel
-from src.ui.book_widget import BookWidget  # noqa: E402
+from src.ui.book_widget import BookWidget
+
+"""UI component for the book grid using Gtk.GridView."""
 
 
 class ShelfGrid(Gtk.Box):  # type: ignore

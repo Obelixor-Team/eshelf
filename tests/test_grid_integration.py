@@ -2,15 +2,16 @@
 
 from unittest.mock import MagicMock
 
-import gi  # noqa: E402
+import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
 from src.database.repository import BookRepository
-from src.models.book import Book  # noqa: E402
+from src.models.book import Book, BookObject
 from src.models.book_model import BookListModel
-from src.ui.shelf_grid import ShelfGrid  # noqa: E402
+from src.ui.book_widget import BookWidget
+from src.ui.shelf_grid import ShelfGrid
 
 
 def test_shelf_grid_layout_columns() -> None:
@@ -22,8 +23,7 @@ def test_shelf_grid_layout_columns() -> None:
         on_book_right_clicked_callback=None,
     )
 
-    # ... update tests to use mock_repo ...
-    # Verify the model is correct (no longer store)
+    # Verify the model is correct
     assert grid.grid_view.get_model() == grid.selection_model
     assert grid.selection_model.get_model() == grid.model
 
@@ -55,9 +55,6 @@ def test_shelf_grid_factory_setup() -> None:
 
 def test_shelf_grid_factory_bind() -> None:
     """Test the grid item factory bind."""
-    from src.models.book import BookObject
-    from src.ui.book_widget import BookWidget
-
     mock_repo = MagicMock(spec=BookRepository)
     grid = ShelfGrid(repository=mock_repo, on_book_selected_callback=lambda b: None)
     mock_factory = MagicMock()

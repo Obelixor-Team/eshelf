@@ -1,25 +1,22 @@
-"""Main window for the eShelf application."""
-
 import logging
 import threading
 from typing import Any, List, Optional, Tuple
 
 import gi
-from gi.repository import GLib
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+from gi.repository import Adw, Gio, GLib, Gtk
 
 from src.config import load_config, save_config
-
-gi.require_version("Gtk", "4.0")  # noqa: E402
-gi.require_version("Adw", "1")  # noqa: E402
-
-from gi.repository import Adw, Gio, Gtk  # noqa: E402
-
-from src.controller.main_controller import MainController  # noqa: E402
+from src.controller.main_controller import MainController
 from src.database.repository import BookRepository
-from src.models.book import Book  # noqa: E402
-from src.ui.dialogs.settings_dialog import SettingsDialog  # noqa: E402
-from src.ui.shelf_grid import ShelfGrid  # noqa: E402
-from src.ui.sidebar import CategoryRow, Sidebar  # noqa: E402
+from src.models.book import Book
+from src.ui.dialogs.settings_dialog import SettingsDialog
+from src.ui.shelf_grid import ShelfGrid
+from src.ui.sidebar import CategoryRow, Sidebar
+
+"""Main window for the eShelf application."""
 
 
 class MainWindow(Adw.ApplicationWindow):  # type: ignore
