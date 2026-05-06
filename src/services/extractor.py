@@ -25,8 +25,18 @@ class CoverExtractor:
         Args:
             cache_dir (str): Directory where extracted covers are stored.
         """
-        self.cache_dir = Path(cache_dir)
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.cache_dir = cache_dir
+
+    @property
+    def cache_dir(self) -> Path:
+        """The directory where extracted covers are stored."""
+        return self._cache_dir
+
+    @cache_dir.setter
+    def cache_dir(self, value: str) -> None:
+        """Set the cache directory and ensure it is a Path object."""
+        self._cache_dir = Path(value)
+        self._cache_dir.mkdir(parents=True, exist_ok=True)
 
     def extract(self, file_path: str) -> Optional[str]:
         """Extract a cover image from a file and save it to the cache.
