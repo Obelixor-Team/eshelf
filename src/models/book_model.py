@@ -1,4 +1,7 @@
-"""A custom GListModel for lazy loading books."""
+"""A custom GListModel for lazy loading books.
+
+This class is not thread-safe and should only be accessed from the main thread.
+"""
 
 from typing import Optional
 
