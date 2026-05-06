@@ -296,11 +296,11 @@ class BookRepository:
         self,
         category_id: Optional[int] = None,
         all_books: bool = False,
-        limit: int = 1,
+        limit: int = 50,
         offset: int = 0,
         search_query: Optional[str] = None,
-    ) -> Optional[Book]:
-        """Retrieve a single book with offset, category and search filtering."""
+    ) -> List[Book]:
+        """Retrieve a list of books with offset, category and search filtering."""
         with self._get_connection() as conn:
             query = (
                 "SELECT path, title, author, cover_path, category_id, created_at "
@@ -330,9 +330,8 @@ class BookRepository:
             params.extend([limit, offset])
 
             cursor = conn.execute(query, params)
-            row = cursor.fetchone()
-            if row:
-                return Book(
+            return [
+                Book(
                     path=row[0],
                     title=row[1],
                     author=row[2],
@@ -340,7 +339,8 @@ class BookRepository:
                     category_id=row[4],
                     created_at=datetime.fromisoformat(row[5]) if row[5] else None,
                 )
-            return None
+                for row in cursor.fetchall()
+            ]
 
     def search_books(self, query: str) -> List[Book]:
         """Search for books by title or author using a keyword-based search."""

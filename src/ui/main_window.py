@@ -185,38 +185,6 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self._active_threads.append(thread)
         thread.start()
 
-        # Empty state page
-        self.empty_page = Adw.StatusPage()
-        self.empty_page.set_title("No Books Found")
-        self.empty_page.set_description(
-            "Scan your library or import folders to get started."
-        )
-        self.empty_page.set_icon_name("library-symbolic")
-
-        # Action buttons for empty state
-        self.empty_button_box = Gtk.Box(
-            orientation=Gtk.Orientation.VERTICAL, spacing=12
-        )
-        self.empty_button_box.set_halign(Gtk.Align.CENTER)
-        self.empty_page.set_child(self.empty_button_box)
-
-        self.empty_scan_button = Gtk.Button(label="Scan Library")
-        self.empty_scan_button.add_css_class("suggested-action")
-        self.empty_scan_button.add_css_class("pill")
-        self.empty_scan_button.connect("clicked", self.on_scan_clicked)
-        self.empty_button_box.append(self.empty_scan_button)
-
-        self.empty_clear_search_button = Gtk.Button(label="Clear Search")
-        self.empty_clear_search_button.add_css_class("pill")
-        self.empty_clear_search_button.connect("clicked", self.on_clear_search_clicked)
-        self.empty_clear_search_button.set_visible(False)
-        self.empty_button_box.append(self.empty_clear_search_button)
-
-        self.stack.add_named(self.empty_page, "empty")
-
-        # Keyboard shortcuts
-        self.setup_shortcuts()
-
     def setup_shortcuts(self) -> None:
         """Set up keyboard shortcuts."""
         # Ctrl+F to focus search
@@ -453,6 +421,13 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         """Update the grid with books from the controller."""
         config = load_config()
         self.grid.update_config(config)
+
+        # Update controller state
+        if self.controller:
+            self.controller.library_dirs = config.get("library_dirs", [])
+            new_cache = config.get("cache_dir")
+            if new_cache:
+                self.controller.extractor.cache_dir = new_cache
 
         self._grid_request_id += 1
         # Virtual scrolling implies we don't need to fetch a list of books upfront

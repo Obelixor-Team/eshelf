@@ -9,7 +9,7 @@ from src.config import load_config, save_config
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gtk  # noqa: E402
+from gi.repository import Adw, GLib, Gtk  # noqa: E402
 
 
 class SettingsDialog(Adw.PreferencesWindow):  # type: ignore
@@ -154,7 +154,13 @@ class SettingsDialog(Adw.PreferencesWindow):  # type: ignore
         row = Adw.ActionRow(title=path)
         btn = Gtk.Button(icon_name="user-trash-symbolic")
         btn.add_css_class("flat")
-        btn.connect("clicked", lambda _: group.remove(row))
+
+        def on_remove_clicked(_: Gtk.Button) -> None:
+            group.remove(row)
+            if row in self.library_rows:
+                self.library_rows.remove(row)
+
+        btn.connect("clicked", on_remove_clicked)
         row.add_suffix(btn)
         return row
 
@@ -164,9 +170,7 @@ class SettingsDialog(Adw.PreferencesWindow):  # type: ignore
             {
                 "books_per_line": int(self.books_per_line_spin.get_value()),
                 "zoom_level": float(self.zoom_spin.get_value()),
-                "library_dirs": [
-                    r.get_title() for r in self.library_rows if r.get_parent()
-                ],
+                "library_dirs": [r.get_title() for r in self.library_rows],
                 "cache_dir": self.cache_entry.get_text(),
                 "show_titles": self.show_titles_switch.get_active(),
             }
@@ -180,10 +184,24 @@ class SettingsDialog(Adw.PreferencesWindow):  # type: ignore
         self.close()
 
     def _on_clear_library(self, btn: Any) -> None:
-        self.controller.clear_library()
+        import threading
+
+        def worker() -> None:
+            try:
+                self.controller.clear_library()
+                GLib.idle_add(self._on_clear_finished)
+            except Exception as e:
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to clear library: {e}")
+                # Optional: show error to user
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_clear_finished(self) -> bool:
         if self.on_save_cb:
             self.on_save_cb()
         self.close()
+        return False
 
     def _on_add_library(self, group: Adw.PreferencesGroup) -> None:
         """Handle adding a library folder."""

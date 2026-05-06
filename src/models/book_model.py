@@ -5,7 +5,7 @@ from typing import Optional
 from gi.repository import Gio, GObject  # noqa: E402
 
 from src.database.repository import BookRepository
-from src.models.book import BookObject
+from src.models.book import Book, BookObject
 
 
 class BookListModel(GObject.Object, Gio.ListModel):  # type: ignore
@@ -49,17 +49,22 @@ class BookListModel(GObject.Object, Gio.ListModel):  # type: ignore
             return None
 
         if position not in self._cache:
-            # Fetch the book from the repository
+            # Fetch a chunk of books from the repository
             if self.repository:
-                book = self.repository.get_books_by_category_paginated(
+                chunk_size = 50
+                # Calculate the start of the chunk (aligned to chunk_size)
+                chunk_offset = (position // chunk_size) * chunk_size
+                books = self.repository.get_books_by_category_paginated(
                     self.category_id,
                     all_books=self.all_books,
-                    limit=1,
-                    offset=position,
+                    limit=chunk_size,
+                    offset=chunk_offset,
                     search_query=self.search_query,
                 )
-                if book:
-                    self._cache[position] = BookObject(book)
+                if isinstance(books, Book):
+                    books = [books]
+                for i, book in enumerate(books):
+                    self._cache[chunk_offset + i] = BookObject(book)
 
         return self._cache.get(position)
 
