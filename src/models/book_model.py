@@ -62,3 +62,10 @@ class BookListModel(GObject.Object, Gio.ListModel):  # type: ignore
                     self._cache[position] = BookObject(book)
 
         return self._cache.get(position)
+
+    def invalidate_cache(self) -> None:
+        """Clear the cache and notify listeners of changes."""
+        old_n_items = self._n_items
+        self._n_items = self._get_count()
+        self._cache.clear()
+        self.items_changed(0, old_n_items, self._n_items)

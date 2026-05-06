@@ -125,7 +125,19 @@ class ShelfGrid(Gtk.Box):  # type: ignore
         all_books: bool = True,
         search_query: Optional[str] = None,
     ) -> None:
-        """Refresh the grid with a new model."""
+        """Refresh the grid with a new model or invalidate the existing one."""
+        if (
+            self.model is not None
+            and self.model.repository == self.repository
+            and self.model.repository is not None
+            and self._current_category_id == category_id
+            and self._current_all_books == all_books
+            and self._current_search_query == search_query
+        ):
+            self.model.invalidate_cache()
+            self.queue_draw()
+            return
+
         self._current_category_id = category_id
         self._current_all_books = all_books
         self._current_search_query = search_query
