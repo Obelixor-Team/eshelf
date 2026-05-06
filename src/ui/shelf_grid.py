@@ -34,6 +34,7 @@ class ShelfGrid(Gtk.Box):  # type: ignore
         self._config = load_config()
 
         self._current_category_id: Optional[int] = None
+        self._current_all_books: bool = True
         self._current_search_query: Optional[str] = None
 
         # Model
@@ -112,19 +113,26 @@ class ShelfGrid(Gtk.Box):  # type: ignore
         self.grid_view.set_min_columns(cols)
         self.grid_view.queue_resize()
         # Refresh with current filters
-        self.update_books(self._current_category_id, self._current_search_query)
+        self.update_books(
+            self._current_category_id,
+            self._current_all_books,
+            self._current_search_query,
+        )
 
     def update_books(
         self,
         category_id: Optional[int] = None,
+        all_books: bool = True,
         search_query: Optional[str] = None,
     ) -> None:
         """Refresh the grid with a new model."""
         self._current_category_id = category_id
+        self._current_all_books = all_books
         self._current_search_query = search_query
         self.model = BookListModel(
             self.repository,
             category_id=self._current_category_id,
+            all_books=self._current_all_books,
             search_query=self._current_search_query,
         )
         self.selection_model.set_model(self.model)

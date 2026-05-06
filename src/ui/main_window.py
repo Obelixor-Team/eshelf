@@ -457,16 +457,42 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self._grid_request_id += 1
         # Virtual scrolling implies we don't need to fetch a list of books upfront
         # Update category view based on model
-        self.grid.update_books(category_id, search_query=search_text)
+        self.grid.update_books(
+            category_id, all_books=all_books, search_query=search_text
+        )
 
-        # ... (Empty state logic might need adjusting for lazy loading)
-        # For simplicity in this step, let's keep it functional.
-        # Lazy loading models don't expose 'books' directly as a list easily.
-        # I'll rely on the model count for empty state checking.
-        if self.grid.model.do_get_n_items() == 0:
+        # Check total library count for the "real" empty state
+        total_library_books = 0
+        if self.controller:
+            total_library_books = self.controller.repository.get_book_count(
+                all_books=True
+            )
+
+        if total_library_books == 0:
+            # Library is completely empty
             self.stack.set_visible_child_name("empty")
-            # ...
+            self.empty_page.set_title("No Books Found")
+            self.empty_page.set_description(
+                "Scan your library or import folders to get started."
+            )
+            self.empty_scan_button.set_visible(True)
+            self.empty_clear_search_button.set_visible(False)
+        elif self.grid.model.do_get_n_items() == 0:
+            # Current filter has no results
+            self.stack.set_visible_child_name("empty")
+            if search_text:
+                self.empty_page.set_title("No Results Found")
+                self.empty_page.set_description(f'No books matching "{search_text}"')
+                self.empty_scan_button.set_visible(False)
+                self.empty_clear_search_button.set_visible(True)
+            else:
+                # Category or Uncategorized is empty
+                self.empty_page.set_title("No Books")
+                self.empty_page.set_description("This category is currently empty.")
+                self.empty_scan_button.set_visible(False)
+                self.empty_clear_search_button.set_visible(False)
         else:
+            # We have books to show
             self.stack.set_visible_child_name("grid")
 
     def on_category_selected(self, category_id: Optional[int], all_books: bool) -> None:

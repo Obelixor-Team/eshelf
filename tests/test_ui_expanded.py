@@ -41,6 +41,48 @@ def test_main_window_refresh_grid_no_books():
     window.refresh_grid(None, False)
 
 
+def test_main_window_empty_states():
+    """Test the context-aware empty state logic in refresh_grid."""
+    window = MainWindow()
+    mock_controller = MagicMock()
+    window.set_controller(mock_controller)
+    window.grid = MagicMock()
+    window.stack = MagicMock()
+    window.empty_page = MagicMock()
+    window.empty_scan_button = MagicMock()
+    window.empty_clear_search_button = MagicMock()
+
+    # Case 1: Library is completely empty
+    mock_controller.repository.get_book_count.return_value = 0
+    window.refresh_grid(all_books=True)
+    window.stack.set_visible_child_name.assert_called_with("empty")
+    window.empty_page.set_title.assert_called_with("No Books Found")
+    window.empty_scan_button.set_visible.assert_called_with(True)
+
+    # Case 2: Library has books, but current category is empty
+    mock_controller.repository.get_book_count.return_value = 10
+    window.grid.model.do_get_n_items.return_value = 0
+    window.refresh_grid(category_id=1, all_books=False)
+    window.stack.set_visible_child_name.assert_called_with("empty")
+    window.empty_page.set_title.assert_called_with("No Books")
+    window.empty_page.set_description.assert_called_with(
+        "This category is currently empty."
+    )
+    window.empty_scan_button.set_visible.assert_called_with(False)
+
+    # Case 3: Library has books, but search has no results
+    window.refresh_grid(search_text="Python")
+    window.stack.set_visible_child_name.assert_called_with("empty")
+    window.empty_page.set_title.assert_called_with("No Results Found")
+    window.empty_page.set_description.assert_called_with('No books matching "Python"')
+    window.empty_clear_search_button.set_visible.assert_called_with(True)
+
+    # Case 4: Results found
+    window.grid.model.do_get_n_items.return_value = 5
+    window.refresh_grid(all_books=True)
+    window.stack.set_visible_child_name.assert_called_with("grid")
+
+
 def test_main_window_on_close_request():
     """Test the close request handler."""
     window = MainWindow()

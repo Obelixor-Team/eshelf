@@ -96,7 +96,7 @@ def test_shelf_grid_get_selected_books() -> None:
     # Select books 0 and 2
     mock_selection.contains.side_effect = lambda i: i in [0, 2]
     mock_repo.get_books_by_category_paginated.side_effect = (
-        lambda cat, limit, offset, search_query=None: Book(
+        lambda cat, limit, offset, all_books=False, search_query=None: Book(
             path=f"/tmp/book{offset}.pdf", title=f"Book {offset}", author="Author"
         )
     )

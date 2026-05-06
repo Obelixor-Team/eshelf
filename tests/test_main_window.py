@@ -203,7 +203,9 @@ def test_refresh_grid(mock_controller: MagicMock) -> None:
 
     window.refresh_grid(category_id=1, all_books=False)
 
-    window.grid.update_books.assert_called_once_with(1, search_query=None)
+    window.grid.update_books.assert_called_once_with(
+        1, all_books=False, search_query=None
+    )
 
 
 @patch("src.ui.main_window.load_config")

@@ -261,7 +261,10 @@ class BookRepository:
             ]
 
     def get_book_count(
-        self, category_id: Optional[int] = None, search_query: Optional[str] = None
+        self,
+        category_id: Optional[int] = None,
+        all_books: bool = False,
+        search_query: Optional[str] = None,
     ) -> int:
         """Get the total number of books with optional category and search filters."""
         with self._get_connection() as conn:
@@ -269,16 +272,19 @@ class BookRepository:
             params: List[Any] = []
             clauses = []
 
-            if category_id is not None:
-                clauses.append("category_id = ?")
-                params.append(category_id)
-
             if search_query:
+                # Search is global
                 words = search_query.split()
                 for word in words:
                     clauses.append("(LOWER(title) LIKE ? OR LOWER(author) LIKE ?)")
                     pattern = f"%{word.lower()}%"
                     params.extend([pattern, pattern])
+            elif not all_books:
+                if category_id is not None:
+                    clauses.append("category_id = ?")
+                    params.append(category_id)
+                else:
+                    clauses.append("category_id IS NULL")
 
             if clauses:
                 query += " WHERE " + " AND ".join(clauses)
@@ -289,6 +295,7 @@ class BookRepository:
     def get_books_by_category_paginated(
         self,
         category_id: Optional[int] = None,
+        all_books: bool = False,
         limit: int = 1,
         offset: int = 0,
         search_query: Optional[str] = None,
@@ -302,16 +309,19 @@ class BookRepository:
             params: List[Any] = []
             clauses = []
 
-            if category_id is not None:
-                clauses.append("category_id = ?")
-                params.append(category_id)
-
             if search_query:
+                # Search is global
                 words = search_query.split()
                 for word in words:
                     clauses.append("(LOWER(title) LIKE ? OR LOWER(author) LIKE ?)")
                     pattern = f"%{word.lower()}%"
                     params.extend([pattern, pattern])
+            elif not all_books:
+                if category_id is not None:
+                    clauses.append("category_id = ?")
+                    params.append(category_id)
+                else:
+                    clauses.append("category_id IS NULL")
 
             if clauses:
                 query += " WHERE " + " AND ".join(clauses)
