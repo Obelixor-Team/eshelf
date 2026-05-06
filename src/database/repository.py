@@ -62,7 +62,7 @@ class BookRepository:
         """
         self.db_path = db_path
         self._local = threading.local()
-        self._all_connections: set[sqlite3.Connection] = set()
+        self._all_connections: dict[int, sqlite3.Connection] = {}
         self._lock = threading.Lock()
         self._init_db()
 
@@ -72,8 +72,9 @@ class BookRepository:
             conn = sqlite3.connect(self.db_path)
             conn.execute("PRAGMA foreign_keys = ON")
             self._local.conn = conn
+            thread_ident = threading.get_ident()
             with self._lock:
-                self._all_connections.add(conn)
+                self._all_connections[thread_ident] = conn
         return cast(sqlite3.Connection, self._local.conn)
 
     def _init_db(self) -> None:
@@ -387,11 +388,11 @@ class BookRepository:
     def close(self) -> None:
         """Close all database connections."""
         with self._lock:
-            for conn in self._all_connections:
+            for thread_ident, conn in list(self._all_connections.items()):
                 try:
                     conn.close()
                 except sqlite3.Error:
                     pass
-            self._all_connections.clear()
+                del self._all_connections[thread_ident]
         if hasattr(self._local, "conn"):
             del self._local.conn

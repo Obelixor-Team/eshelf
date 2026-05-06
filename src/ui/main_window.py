@@ -279,8 +279,13 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
             initial_request_id = self._grid_request_id
 
             def worker() -> None:
-                books = self._fetch_books(category_id, all_books, None, last_sort)
-                GLib.idle_add(self._apply_grid_update, books, initial_request_id)
+                try:
+                    books = self._fetch_books(category_id, all_books, None, last_sort)
+                    GLib.idle_add(self._apply_grid_update, books, initial_request_id)
+                except Exception as e:
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error fetching books: {e}")
+                    GLib.idle_add(self.show_error, f"Failed to load books: {e}")
 
             threading.Thread(target=worker, daemon=True).start()
         finally:
@@ -828,6 +833,7 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         # Create a popover for actions
         popover = Gtk.Popover()
         popover.set_parent(widget)
+        popover.set_pointing_to(widget)
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         box.set_margin_top(6)

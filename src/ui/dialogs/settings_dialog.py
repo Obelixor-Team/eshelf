@@ -165,23 +165,32 @@ class SettingsDialog(Adw.PreferencesWindow):  # type: ignore
         return row
 
     def _on_save(self, btn: Any) -> None:
-        print("DEBUG: SettingsDialog _on_save called")
-        self.config.update(
-            {
-                "books_per_line": int(self.books_per_line_spin.get_value()),
-                "zoom_level": float(self.zoom_spin.get_value()),
-                "library_dirs": [r.get_title() for r in self.library_rows],
-                "cache_dir": self.cache_entry.get_text(),
-                "show_titles": self.show_titles_switch.get_active(),
-            }
-        )
-        save_config(self.config)
-        if self.on_save_cb:
-            print("DEBUG: Calling on_save_cb")
-            self.on_save_cb()
-        else:
-            print("DEBUG: on_save_cb is None")
-        self.close()
+        try:
+            self.config.update(
+                {
+                    "books_per_line": int(self.books_per_line_spin.get_value()),
+                    "zoom_level": float(self.zoom_spin.get_value()),
+                    "library_dirs": [r.get_title() for r in self.library_rows],
+                    "cache_dir": self.cache_entry.get_text(),
+                    "show_titles": self.show_titles_switch.get_active(),
+                }
+            )
+            save_config(self.config)
+            if self.on_save_cb:
+                self.on_save_cb()
+            self.close()
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to save settings: {e}")
+            # Show error to user
+            error_dialog = Adw.MessageDialog(
+                transient_for=self,
+                heading="Error",
+                body=f"Failed to save settings: {e}",
+            )
+            error_dialog.add_response("ok", "OK")
+            error_dialog.set_default_response("ok")
+            error_dialog.present()
 
     def _on_clear_library(self, btn: Any) -> None:
         import threading

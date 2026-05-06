@@ -1,6 +1,7 @@
 """Controller to coordinate between the UI and the backend services."""
 
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple
 
@@ -159,6 +160,7 @@ class MainController:
                 title=title,
                 author=author,
                 cover_path=cover_path,
+                created_at=datetime.now(),
             )
             self.book_service.add_book(book)
             return True
