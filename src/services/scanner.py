@@ -114,22 +114,28 @@ class BookScanner:
         updated = 0
         failed_files: List[str] = []
 
-        results: List[Tuple[Optional[Book], Optional[str]]] = []
+        # Process files in parallel to extract metadata, but collect results
+        # for serial database access in main thread
+        books_to_process: List[Tuple[Book, bool]] = []  # (book, is_update)
         with ThreadPoolExecutor(max_workers=4) as executor:
             futures = [executor.submit(self._process_file, f) for f in all_files]
             for i, future in enumerate(futures, 1):
                 if progress_callback:
                     progress_callback(i, total_files)
-                results.append(future.result())
+                result = future.result()
+                book, failed_path = result
 
-        for book, failed_path in results:
-            if failed_path:
-                failed_files.append(failed_path)
-                continue
+                if failed_path:
+                    failed_files.append(failed_path)
+                    continue
 
-            if book is None:
-                continue
+                if book is not None:
+                    books_to_process.append(
+                        (book, False)
+                    )  # We'll check existence in main thread
 
+        # Perform database operations serially in main thread to avoid race conditions
+        for book, _ in books_to_process:
             existing = self.repository.get_book_by_path(book.path)
             self.repository.add_book(book)
             if existing:
