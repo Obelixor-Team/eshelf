@@ -7,9 +7,9 @@ from src.main import main
 
 @patch("src.main.MainController")
 @patch("src.main.Adw.Application")
-@patch("os.makedirs")
+@patch("src.main.setup_logging")
 def test_main_execution(
-    mock_makedirs: MagicMock,
+    mock_setup_logging: MagicMock,
     mock_adw_app: MagicMock,
     mock_controller: MagicMock,
 ) -> None:
