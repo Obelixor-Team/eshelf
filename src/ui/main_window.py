@@ -14,6 +14,7 @@ from src.config import load_config, save_config  # noqa: E402
 from src.controller.main_controller import MainController  # noqa: E402
 from src.database.repository import BookRepository  # noqa: E402
 from src.models.book import Book  # noqa: E402
+from src.ui.dialogs.content_search_dialog import ContentSearchDialog  # noqa: E402
 from src.ui.dialogs.settings_dialog import SettingsDialog  # noqa: E402
 from src.ui.shelf_grid import ShelfGrid  # noqa: E402
 from src.ui.sidebar import CategoryRow, Sidebar  # noqa: E402
@@ -124,6 +125,12 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         self.sort_combo.connect("notify::selected", self.on_sort_changed)
         self.header_bar.pack_start(self.sort_combo)
 
+        # Content search button
+        self.content_search_button = Gtk.Button(icon_name="edit-find-symbolic")
+        self.content_search_button.set_tooltip_text("Search inside books")
+        self.content_search_button.connect("clicked", self.on_content_search_clicked)
+        self.header_bar.pack_end(self.content_search_button)
+
         # Progress bar
         self.progress_bar = Gtk.ProgressBar()
         self.progress_bar.set_visible(False)
@@ -219,6 +226,8 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         # Re-initialize grid with the repository now that we have a controller
         self.grid.repository = self.controller.repository
         self.grid.update_books()
+        # Set controller on sidebar for content search
+        self.sidebar.controller = controller
 
         # Provide error callback to the controller
         self.controller.error_callback = self.show_error
@@ -809,6 +818,17 @@ class MainWindow(Adw.ApplicationWindow):  # type: ignore
         """Handle the settings button click."""
         dialog = SettingsDialog(
             self, self.controller, self.apply_theme, on_save_cb=self.refresh_grid
+        )
+        dialog.present()
+
+    def on_content_search_clicked(self, button: Gtk.Button) -> None:
+        """Handle click on the content search button."""
+        if not self.controller:
+            return
+
+        dialog = ContentSearchDialog(
+            self,  # Get the root window
+            self.controller,  # Pass the controller
         )
         dialog.present()
 
