@@ -25,6 +25,7 @@ jobs:
             libgirepository1.0-dev \
             libcairo2-dev \
             pkg-config \
+            libgtk-4-dev \
             gir1.2-gtk-4.0 \
             libadwaita-1-dev
       - name: Install dependencies
