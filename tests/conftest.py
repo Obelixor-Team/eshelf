@@ -13,7 +13,4 @@ def init_gtk():
     """Initialize GTK for tests."""
     app = Gtk.Application(application_id="org.eshelf.test")
     app.register()
-    # In some environments, we need to explicitly trigger the startup
-    # process to initialize the GTK internals.
-    app.startup()
     yield app

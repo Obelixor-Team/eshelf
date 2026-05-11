@@ -27,7 +27,8 @@ jobs:
             pkg-config \
             libgtk-4-dev \
             gir1.2-gtk-4.0 \
-            libadwaita-1-dev
+            libadwaita-1-dev \
+            xvfb
       - name: Install dependencies
         run: uv sync
       - name: Run lint
@@ -35,7 +36,7 @@ jobs:
       - name: Run typecheck
         run: uv run make typecheck
       - name: Run tests
-        run: uv run make test
+        run: xvfb-run uv run make test
 
   build-appimage:
     needs: test
