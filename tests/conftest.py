@@ -12,7 +12,8 @@ from gi.repository import Gtk  # noqa: E402
 def init_gtk():
     """Initialize GTK for tests."""
     app = Gtk.Application(application_id="org.eshelf.test")
-    # Just registering the application is often enough to initialize
-    # the necessary GTK internals for widget instantiation in tests.
     app.register()
+    # In some environments, we need to explicitly trigger the startup
+    # process to initialize the GTK internals.
+    app.startup()
     yield app
