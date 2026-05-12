@@ -30,7 +30,7 @@ class Sidebar(Adw.Bin):  # type: ignore
         on_category_created: Callable[[str], None],
         on_category_deleted: Callable[[int], None],
         on_book_dropped: Optional[Callable[[str, Optional[int]], None]] = None,
-    ) -> None:
+    ):
         """Initialize the Sidebar.
 
         Args:

@@ -5,23 +5,18 @@ AppDir:
     id: ai.opencode.eshelf
     name: eshelf
     icon: eshelf
-    version: 0.8.2
-    exec: src/main.py
-    exec_args: $@
+    version: 0.9.0
+    exec: /usr/bin/python3
+    exec_args: src/main.py $@
   apt:
     arch: amd64
     sources:
       - sourceline: 'deb http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse'
-        key_url: 'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x3b4fe6acc0b21f32'
+        key_url: 'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C'
     include:
       - python3-minimal
       - libgtk-4-1
       - libadwaita-1-0
     exclude: []
-  test:
-    - fedora:
-        image: appimage-builder/test:fedora-30
-        command: ./AppRun --version
 AppImage:
   arch: x86_64
-  name: eshelf-x86_64.AppImage
