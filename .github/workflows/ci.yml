@@ -46,7 +46,10 @@ jobs:
       - name: Install appimage-builder
         run: pip install appimage-builder
       - name: Copy source to AppDir
-        run: mkdir -p AppDir && cp -r src AppDir/
+        run: |
+          mkdir -p AppDir
+          cp -r src AppDir/
+          cp eshelf.png AppDir/
       - name: Build AppImage
         run: appimage-builder --recipe appimage-builder.yml
       - name: Upload AppImage
