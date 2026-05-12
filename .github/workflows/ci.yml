@@ -41,9 +41,10 @@ jobs:
   build-appimage:
     needs: test
     runs-on: ubuntu-latest
-    container: appimage-builder/builder:latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install appimage-builder
+        run: pip install appimage-builder
       - name: Build AppImage
         run: appimage-builder --recipe appimage-builder.yml
       - name: Upload AppImage
