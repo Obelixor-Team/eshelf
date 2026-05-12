@@ -6,8 +6,8 @@ AppDir:
     name: eshelf
     icon: eshelf
     version: 0.9.0
-    exec: src/main.py
-    exec_args: $@
+    exec: /usr/bin/python3
+    exec_args: src/main.py $@
   apt:
     arch: amd64
     sources:
