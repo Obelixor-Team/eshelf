@@ -49,7 +49,8 @@ jobs:
         run: |
           mkdir -p AppDir
           cp -r src AppDir/
-          cp eshelf.png AppDir/
+          mkdir -p AppDir/usr/share/pixmaps
+          cp eshelf.png AppDir/usr/share/pixmaps/
       - name: Build AppImage
         run: appimage-builder --recipe appimage-builder.yml
       - name: Upload AppImage
