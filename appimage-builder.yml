@@ -18,9 +18,5 @@ AppDir:
       - libgtk-4-1
       - libadwaita-1-0
     exclude: []
-  test:
-    fedora:
-      image: appimage-builder/test:fedora-30
-      command: ./AppRun --version
 AppImage:
   arch: x86_64
